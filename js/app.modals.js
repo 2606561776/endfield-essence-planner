@@ -78,6 +78,8 @@
 
     let scrollLockActive = false;
     let scrollLockY = 0;
+    let staleLockCheckRaf = null;
+    let staleLockCheckTimer = null;
     const supportsStableGutter = (() => {
       try {
         return typeof CSS !== "undefined" && CSS.supports("scrollbar-gutter: stable");
@@ -124,6 +126,58 @@
       }
     };
 
+    const hasActiveModal = () =>
+      Boolean(
+        state.showNotice.value ||
+          state.showChangelog.value ||
+          state.showAbout.value ||
+          state.showTutorialSkipConfirm.value
+      );
+
+    const clearStaleLockCheck = () => {
+      if (staleLockCheckRaf) {
+        cancelAnimationFrame(staleLockCheckRaf);
+        staleLockCheckRaf = null;
+      }
+      if (staleLockCheckTimer) {
+        clearTimeout(staleLockCheckTimer);
+        staleLockCheckTimer = null;
+      }
+    };
+
+    const normalizeStaleScrollLock = () => {
+      if (typeof window === "undefined") return;
+      if (hasActiveModal()) return;
+      const root = document.documentElement;
+      const body = document.body;
+      if (!root || !body) return;
+      const inlineLocked =
+        body.style.position === "fixed" ||
+        body.style.overflow === "hidden" ||
+        Boolean(body.style.top);
+      const classLocked =
+        root.classList.contains("modal-open") || body.classList.contains("modal-open");
+      if (!scrollLockActive && !inlineLocked && !classLocked) return;
+      setModalScrollLock(false);
+    };
+
+    const scheduleStaleLockCheck = () => {
+      if (typeof window === "undefined") return;
+      clearStaleLockCheck();
+      staleLockCheckRaf = requestAnimationFrame(() => {
+        staleLockCheckRaf = null;
+        staleLockCheckTimer = setTimeout(() => {
+          staleLockCheckTimer = null;
+          normalizeStaleScrollLock();
+        }, modalTransitionMs + 40);
+      });
+    };
+
+    const handleLifecycleRecovery = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      scheduleStaleLockCheck();
+    };
+
     onMounted(() => {
       cleanupLegacyNoticeKeys();
 
@@ -137,6 +191,11 @@
         }
       };
       autoOpenNotice();
+
+      window.addEventListener("pageshow", handleLifecycleRecovery);
+      window.addEventListener("focus", handleLifecycleRecovery);
+      document.addEventListener("visibilitychange", handleLifecycleRecovery);
+      scheduleStaleLockCheck();
 
       if (typeof state.maybeAutoStartTutorial === "function") {
         state.maybeAutoStartTutorial();
@@ -158,6 +217,7 @@
         modalUnlockTimer = setTimeout(() => {
           setModalScrollLock(false);
           modalUnlockTimer = null;
+          scheduleStaleLockCheck();
         }, modalTransitionMs);
       },
       { immediate: true }
@@ -178,6 +238,10 @@
         clearTimeout(modalUnlockTimer);
         modalUnlockTimer = null;
       }
+      clearStaleLockCheck();
+      window.removeEventListener("pageshow", handleLifecycleRecovery);
+      window.removeEventListener("focus", handleLifecycleRecovery);
+      document.removeEventListener("visibilitychange", handleLifecycleRecovery);
       setModalScrollLock(false);
     });
 
