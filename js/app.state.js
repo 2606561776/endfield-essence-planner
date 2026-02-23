@@ -95,12 +95,6 @@
         description:
           "先按默认效率排序（覆盖数、可同时刷数量等）；仅在效率相同时，才使用优先地区打破平局。",
       },
-      {
-        value: "weighted",
-        label: "加权融合",
-        description:
-          "给优先地区增加加权分数，并与效率综合排序；可通过“影响强度”调节地区优先级的影响大小。",
-      },
     ];
     state.conflictOpenMap = ref({});
     state.showBackToTop = ref(false);

@@ -10,7 +10,7 @@
     const s2Set = new Set(weapons.map((weapon) => weapon.s2).filter(Boolean));
     const s3Set = new Set(weapons.map((weapon) => weapon.s3).filter(Boolean));
     const mobilePanels = new Set(["weapons", "plans"]);
-    const priorityModes = new Set(["strict", "sameCoverage", "sameEfficiency", "weighted"]);
+    const priorityModes = new Set(["strict", "sameCoverage", "sameEfficiency"]);
     const themeModes = new Set(["auto", "light", "dark"]);
     const regionSet = new Set(
       dungeons

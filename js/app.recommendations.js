@@ -74,30 +74,6 @@
         if (b.maxWeaponCount !== a.maxWeaponCount) {
           return b.maxWeaponCount - a.maxWeaponCount;
         }
-      } else if (mode === "weighted") {
-        const strength = Math.max(0, Math.min(100, Number(config.priorityStrength) || 0));
-        const secondaryWeight =
-          Math.max(0, Math.min(100, Number(config.prioritySecondaryWeight) || 0)) / 100;
-        const regionWeightTable = {
-          0: 1,
-          1: secondaryWeight,
-          2: 0,
-        };
-        const efficiencyA =
-          a.selectedMatchCount * 1000 +
-          a.weaponCount * 100 +
-          a.maxWeaponCount * 10;
-        const efficiencyB =
-          b.selectedMatchCount * 1000 +
-          b.weaponCount * 100 +
-          b.maxWeaponCount * 10;
-        const priorityA =
-          (regionWeightTable[getRegionRank(a.dungeonRegion, preferred1, preferred2)] || 0) * strength;
-        const priorityB =
-          (regionWeightTable[getRegionRank(b.dungeonRegion, preferred1, preferred2)] || 0) * strength;
-        const totalA = efficiencyA + priorityA;
-        const totalB = efficiencyB + priorityB;
-        if (totalB !== totalA) return totalB - totalA;
       } else {
         if (baseDiff !== 0) return baseDiff;
         const regionDiff = compareRegion(a, b, preferred1, preferred2);

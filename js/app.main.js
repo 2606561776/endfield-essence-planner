@@ -170,6 +170,18 @@
   };
 
   const modules = window.AppModules || {};
+  const planConfigControl = {
+    props: {
+      t: { type: Function, required: true },
+      recommendationConfig: { type: Object, required: true },
+      showPlanConfig: { type: Boolean, required: true },
+      showPlanConfigHintDot: { type: Boolean, required: true },
+      regionOptions: { type: Array, required: true },
+      tPlanPriorityModeOptions: { type: Array, required: true },
+    },
+    emits: ["toggle"],
+    template: "#plan-config-control-template",
+  };
 
   const app = createApp({
     setup() {
@@ -406,6 +418,7 @@
         regionPriorityModeOptions: state.regionPriorityModeOptions,
         showBackToTop: state.showBackToTop,
         scrollToTop: state.scrollToTop,
+        scrollToWeaponList: state.scrollToWeaponList,
         tutorialActive: state.tutorialActive,
         tutorialStep: state.tutorialStep,
         tutorialVisibleLines: state.tutorialVisibleLines,
@@ -425,6 +438,10 @@
         tutorialTargetSchemeKey: state.tutorialTargetSchemeKey,
         isTutorialGuideWeapon: state.isTutorialGuideWeapon,
         canShowAds: state.canShowAds,
+        adPreviewMode: state.adPreviewMode,
+        showAdPreviewEntry: state.showAdPreviewEntry,
+        enableAdPreview: state.enableAdPreview,
+        dismissAdsForSession: state.dismissAdsForSession,
         isPortrait: state.isPortrait,
         isAdPortrait: state.isAdPortrait,
         startTutorial: state.startTutorial,
@@ -557,6 +574,7 @@
     },
   });
 
+  app.component("PlanConfigControl", planConfigControl);
   app.directive("lazy-src", lazyImageDirective);
   app.mount("#app");
 })();

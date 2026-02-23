@@ -227,6 +227,18 @@
         letter-spacing: 0.06em;
       }
 
+      .mobile-hint.mobile-hint-with-action {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .mobile-hint-action {
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+
       .mobile-tab {
         flex: 1;
         border-radius: 999px;
@@ -265,6 +277,10 @@
 
         .mobile-hint {
           display: block;
+        }
+
+        .mobile-hint.mobile-hint-with-action {
+          display: flex;
         }
 
         .panel-hidden {
@@ -597,6 +613,36 @@
         color: var(--muted);
         font-size: 12px;
         letter-spacing: 0.04em;
+      }
+
+      .ad-preview-notice {
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px dashed var(--stroke);
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+
+      .ad-preview-entry {
+        position: fixed;
+        right: 14px;
+        bottom: 86px;
+        z-index: 48;
+        border: 1px solid rgba(77, 214, 201, 0.45);
+        background: rgba(8, 12, 18, 0.9);
+        color: #d7fff8;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 12px;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      }
+
+      .ad-preview-entry:hover {
+        border-color: rgba(77, 214, 201, 0.65);
       }
 
       .ai-chip {

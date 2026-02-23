@@ -159,6 +159,98 @@
         <div class="preload-sub">首次打开或强制刷新可能稍慢</div>
       </div>
     </div>
+    <template id="plan-config-control-template">
+      <div class="plan-config" @click.stop>
+        <button
+          class="ghost-button toggle-button"
+          :class="{ 'is-active': showPlanConfig }"
+          :aria-pressed="showPlanConfig ? 'true' : 'false'"
+          @click="$emit('toggle')"
+        >
+          <span
+            v-if="showPlanConfigHintDot"
+            class="plan-config-hint-dot"
+            aria-hidden="true"
+          ></span>
+          <span>{{ t("方案推荐设置") }}</span>
+        </button>
+        <div v-if="showPlanConfig" class="plan-config-panel">
+          <div class="plan-config-item">
+            <div class="secondary-label">{{ t("方案显示") }}</div>
+            <button
+              class="ghost-button toggle-button switch-toggle"
+              :class="{ 'is-active': recommendationConfig.hideExcluded }"
+              :title="t('开启后，排除的武器将不会出现在方案推荐列表中。')"
+              role="switch"
+              :aria-checked="recommendationConfig.hideExcluded ? 'true' : 'false'"
+              @click="recommendationConfig.hideExcluded = !recommendationConfig.hideExcluded"
+            >
+              <span class="switch-label">{{ t("隐藏已排除武器") }}</span>
+              <span class="switch-track" :class="{ on: recommendationConfig.hideExcluded }" aria-hidden="true">
+                <span class="switch-thumb"></span>
+              </span>
+            </button>
+            <button
+              class="ghost-button toggle-button switch-toggle"
+              :class="{ 'is-active': recommendationConfig.hideFourStarWeapons }"
+              :title="t('开启后，四星武器将不会出现在武器选择器和方案推荐列表中。')"
+              role="switch"
+              :aria-checked="recommendationConfig.hideFourStarWeapons ? 'true' : 'false'"
+              @click="recommendationConfig.hideFourStarWeapons = !recommendationConfig.hideFourStarWeapons"
+            >
+              <span class="switch-label">{{ t("隐藏四星武器") }}</span>
+              <span class="switch-track" :class="{ on: recommendationConfig.hideFourStarWeapons }" aria-hidden="true">
+                <span class="switch-thumb"></span>
+              </span>
+            </button>
+          </div>
+          <div class="plan-config-item">
+            <div class="secondary-label">{{ t("地区优先级") }}</div>
+            <select class="secondary-select" v-model="recommendationConfig.preferredRegion1">
+              <option value="">{{ t("不设置") }}</option>
+              <option v-for="region in regionOptions" :key="'region-1-' + region" :value="region">
+                {{ region }}
+              </option>
+            </select>
+            <div class="secondary-hint">{{ t("优先地区1（最高）") }}</div>
+            <select class="secondary-select" v-model="recommendationConfig.preferredRegion2">
+              <option value="">{{ t("不设置") }}</option>
+              <option
+                v-for="region in regionOptions"
+                :key="'region-2-' + region"
+                :value="region"
+                :disabled="region === recommendationConfig.preferredRegion1"
+              >
+                {{ region }}
+              </option>
+            </select>
+            <div class="secondary-hint">{{ t("优先地区2（次高）") }}</div>
+          </div>
+          <div class="plan-config-item">
+            <div class="secondary-label">{{ t("优先级影响策略") }}</div>
+            <select class="secondary-select" v-model="recommendationConfig.priorityMode">
+              <option
+                v-for="mode in tPlanPriorityModeOptions"
+                :key="mode.value"
+                :value="mode.value"
+              >
+                {{ mode.label }}
+              </option>
+            </select>
+            <div class="priority-mode-guide">
+              <div
+                class="secondary-hint priority-mode-desc"
+                :class="{ 'is-active': recommendationConfig.priorityMode === mode.value }"
+                v-for="mode in tPlanPriorityModeOptions"
+                :key="'mode-desc-' + mode.value"
+              >
+                <span class="priority-mode-name">{{ mode.label }}：</span>{{ mode.description }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
     <div id="app" class="app-shell" v-cloak v-show="appReady" data-fingerprint="cmty-ep-2026-02-07">
       <header class="hero">
         <div class="hero-title">
@@ -284,7 +376,19 @@
         </div>
         <div class="hero-nav-stack">
           <div v-if="canShowAds && isAdPortrait" class="adwork-hero-slot is-ad-soft-hidden" aria-label="adwork-banner-mobile">
-            <div class="adwork-net adwork-auto" data-id="1050" data-placeholder="none"></div>
+            <button
+              class="ad-close-button"
+              type="button"
+              :title="t('关闭广告')"
+              :aria-label="t('关闭广告')"
+              @click.stop="dismissAdsForSession"
+            >
+              &times;
+            </button>
+            <div v-if="adPreviewMode" class="ad-preview-banner">
+              {{ t("广告预览模式（本地）") }}
+            </div>
+            <div v-else class="adwork-net adwork-auto" data-id="1050" data-placeholder="none"></div>
           </div>
           <nav class="main-nav hero-nav">
           <button 
@@ -339,6 +443,12 @@
           <button class="about-button perf-keep" @click="setPerfMode('low')">{{ t("保持低GPU") }}</button>
         </div>
       </div>
+      <div v-if="adPreviewMode" class="ad-preview-notice">
+        {{ t("广告预览模式已开启，仅用于本地查看广告位样式。") }}
+      </div>
+      <button v-if="showAdPreviewEntry" class="ad-preview-entry" type="button" @click="enableAdPreview">
+        {{ t("预览广告位") }}
+      </button>
       <main class="layout">
         <transition name="view-switch" mode="out-in">
           <div v-if="currentView === 'planner'" key="planner" class="view-shell planner-shell">
@@ -366,12 +476,34 @@
             {{ t("方案推荐") }} <span class="count">{{ recommendations.length }}</span>
           </button>
         </div>
-        <div class="mobile-hint">{{ t("手机端可通过上方标签切换“武器选择 / 方案推荐”。") }}</div>
+        <div class="mobile-hint" :class="{ 'mobile-hint-with-action': isPortrait && mobilePanel === 'weapons' }">
+          <span>{{ t("手机端可通过上方标签切换“武器选择 / 方案推荐”，并可下滑继续浏览列表。") }}</span>
+          <button
+            v-if="isPortrait && mobilePanel === 'weapons'"
+            class="ghost-button mobile-hint-action"
+            type="button"
+            @click="scrollToWeaponList"
+          >
+            {{ t("点我直达武器列表") }}
+          </button>
+        </div>
         <section class="panel" :class="{ 'panel-hidden': mobilePanel !== 'weapons' }">
           <div class="panel-title">
             <h2>{{ t("武器选择器") }}</h2>
+            <div v-if="isPortrait" class="panel-actions">
+              <plan-config-control
+                :t="t"
+                :recommendation-config="recommendationConfig"
+                :show-plan-config="showPlanConfig"
+                :show-plan-config-hint-dot="showPlanConfigHintDot"
+                :region-options="regionOptions"
+                :t-plan-priority-mode-options="tPlanPriorityModeOptions"
+                @toggle="togglePlanConfig"
+              ></plan-config-control>
+            </div>
           </div>
 
+          <div class="weapon-list-anchor" aria-hidden="true"></div>
           <div class="search-box">
             <span>🔍</span>
             <input v-model="searchQuery" :placeholder="t('搜索武器 / 属性 / 角色...')" />
@@ -728,136 +860,15 @@
           <div class="panel-title">
             <h2>{{ t("方案推荐列表") }}</h2>
             <div class="panel-actions">
-              <div class="plan-config" @click.stop>
-                <button
-                  class="ghost-button toggle-button"
-                  :class="{ 'is-active': showPlanConfig }"
-                  :aria-pressed="showPlanConfig ? 'true' : 'false'"
-                  @click="togglePlanConfig"
-                >
-                  <span
-                    v-if="showPlanConfigHintDot"
-                    class="plan-config-hint-dot"
-                    aria-hidden="true"
-                  ></span>
-                  <span>{{ t("方案推荐设置") }}</span>
-                </button>
-                <div v-if="showPlanConfig" class="plan-config-panel">
-                  <div class="plan-config-item">
-                    <div class="secondary-label">{{ t("方案显示") }}</div>
-                    <button
-                      class="ghost-button toggle-button switch-toggle"
-                      :class="{ 'is-active': recommendationConfig.hideExcluded }"
-                      :title="t('开启后，排除的武器将不会出现在方案推荐列表中。')"
-                      role="switch"
-                      :aria-checked="recommendationConfig.hideExcluded ? 'true' : 'false'"
-                      @click="recommendationConfig.hideExcluded = !recommendationConfig.hideExcluded"
-                    >
-                      <span class="switch-label">{{ t("隐藏已排除武器") }}</span>
-                      <span class="switch-track" :class="{ on: recommendationConfig.hideExcluded }" aria-hidden="true">
-                        <span class="switch-thumb"></span>
-                      </span>
-                    </button>
-                    <button
-                      class="ghost-button toggle-button switch-toggle"
-                      :class="{ 'is-active': recommendationConfig.hideFourStarWeapons }"
-                      :title="t('开启后，四星武器将不会出现在武器选择器和方案推荐列表中。')"
-                      role="switch"
-                      :aria-checked="recommendationConfig.hideFourStarWeapons ? 'true' : 'false'"
-                      @click="recommendationConfig.hideFourStarWeapons = !recommendationConfig.hideFourStarWeapons"
-                    >
-                      <span class="switch-label">{{ t("隐藏四星武器") }}</span>
-                      <span class="switch-track" :class="{ on: recommendationConfig.hideFourStarWeapons }" aria-hidden="true">
-                        <span class="switch-thumb"></span>
-                      </span>
-                    </button>
-                  </div>
-                  <div class="plan-config-item">
-                    <div class="secondary-label">{{ t("地区优先级") }}</div>
-                    <select class="secondary-select" v-model="recommendationConfig.preferredRegion1">
-                      <option value="">{{ t("不设置") }}</option>
-                      <option v-for="region in regionOptions" :key="'region-1-' + region" :value="region">
-                        {{ region }}
-                      </option>
-                    </select>
-                    <div class="secondary-hint">{{ t("优先地区1（最高）") }}</div>
-                    <select class="secondary-select" v-model="recommendationConfig.preferredRegion2">
-                      <option value="">{{ t("不设置") }}</option>
-                      <option
-                        v-for="region in regionOptions"
-                        :key="'region-2-' + region"
-                        :value="region"
-                        :disabled="region === recommendationConfig.preferredRegion1"
-                      >
-                        {{ region }}
-                      </option>
-                    </select>
-                    <div class="secondary-hint">{{ t("优先地区2（次高）") }}</div>
-                  </div>
-                  <div class="plan-config-item">
-                    <div class="secondary-label">{{ t("优先级影响策略") }}</div>
-                    <select class="secondary-select" v-model="recommendationConfig.priorityMode">
-                      <option
-                        v-for="mode in tPlanPriorityModeOptions"
-                        :key="mode.value"
-                        :value="mode.value"
-                      >
-                        {{ mode.label }}
-                      </option>
-                    </select>
-                    <div class="priority-mode-guide">
-                      <div
-                        class="secondary-hint priority-mode-desc"
-                        :class="{ 'is-active': recommendationConfig.priorityMode === mode.value }"
-                        v-for="mode in tPlanPriorityModeOptions"
-                        :key="'mode-desc-' + mode.value"
-                      >
-                        <span class="priority-mode-name">{{ mode.label }}：</span>{{ mode.description }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="plan-config-item" v-if="recommendationConfig.priorityMode === 'weighted'">
-                    <div class="secondary-label">{{ t("影响强度") }}</div>
-                    <input
-                      class="secondary-range"
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="1"
-                      v-model.number="recommendationConfig.priorityStrength"
-                    />
-                    <div class="secondary-hint">{{ t("当前强度：") }}{{ recommendationConfig.priorityStrength }}</div>
-                    <div class="secondary-hint">
-                      {{ t("0~30：以效率为主；40~70：效率与地区平衡；80~100：显著优先地区（仅“加权融合”生效）") }}
-                    </div>
-                    <div class="secondary-hint">
-                      {{ t("影响强度用于控制“地区加分”对总排序的作用比例，数值越大，优先地区越容易排在前面。") }}
-                    </div>
-                    <div class="secondary-hint">
-                      {{
-                        t("说明：影响强度越高，地区优先级越容易压过效率差异；0表示几乎只按效率排序，100表示更强调优先地区。")
-                      }}
-                    </div>
-                    <div class="secondary-label">{{ t("地区2权重") }}</div>
-                    <input
-                      class="secondary-range"
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="1"
-                      v-model.number="recommendationConfig.prioritySecondaryWeight"
-                    />
-                    <div class="secondary-hint">
-                      {{ t("当前地区2权重：") }}{{ recommendationConfig.prioritySecondaryWeight }}%
-                    </div>
-                    <div class="secondary-hint">
-                      {{
-                        t("说明：加权融合中，地区1权重固定为100%，地区2按该比例参与；0%等于只看地区1，100%等于地区1和地区2同权。")
-                      }}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <plan-config-control
+                :t="t"
+                :recommendation-config="recommendationConfig"
+                :show-plan-config="showPlanConfig"
+                :show-plan-config-hint-dot="showPlanConfigHintDot"
+                :region-options="regionOptions"
+                :t-plan-priority-mode-options="tPlanPriorityModeOptions"
+                @toggle="togglePlanConfig"
+              ></plan-config-control>
               <div class="pill">{{ t("已选") }} {{ selectedWeapons.length }} {{ t("把") }}</div>
               <button
                 v-if="extraRecommendations.length"
@@ -874,7 +885,19 @@
           </div>
 
           <div v-if="canShowAds && !isAdPortrait" class="card scheme-inline-ad-card scheme-inline-ad-top is-ad-soft-hidden" aria-label="adwork-banner-desktop">
-            <div class="adwork-net adwork-auto" data-id="1050" data-placeholder="none"></div>
+            <button
+              class="ad-close-button"
+              type="button"
+              :title="t('关闭广告')"
+              :aria-label="t('关闭广告')"
+              @click.stop="dismissAdsForSession"
+            >
+              &times;
+            </button>
+            <div v-if="adPreviewMode" class="ad-preview-banner">
+              {{ t("广告预览模式（本地）") }}
+            </div>
+            <div v-else class="adwork-net adwork-auto" data-id="1050" data-placeholder="none"></div>
           </div>
 
           <div v-if="!selectedWeapons.length" class="empty">
@@ -1899,7 +1922,7 @@
               </button>
             </div>
             <div class="mobile-hint">
-              {{ t("手机端可通过上方标签切换“武器选择 / 词条对照”。") }}
+              {{ t("手机端可通过上方标签切换“武器选择 / 词条对照”，并可下滑继续浏览列表。") }}
             </div>
             <div class="match-grid">
               <section class="panel match-panel" :class="{ 'panel-hidden': matchMobilePanel !== 'source' }">

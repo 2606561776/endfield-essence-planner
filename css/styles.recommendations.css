@@ -18,6 +18,7 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        position: relative;
       }
 
       .scheme-inline-ad-card .adwork-net {
@@ -42,11 +43,53 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        position: relative;
       }
 
       .adwork-hero-slot .adwork-net {
         display: block;
         width: 100%;
+      }
+
+      .ad-close-button {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        z-index: 2;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        background: rgba(8, 12, 18, 0.82);
+        color: rgba(230, 233, 239, 0.9);
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ad-close-button:hover {
+        border-color: rgba(255, 255, 255, 0.45);
+        color: var(--text);
+      }
+
+      .ad-preview-banner {
+        width: min(100%, 640px);
+        min-height: 88px;
+        border-radius: 12px;
+        border: 1px dashed rgba(77, 214, 201, 0.45);
+        background: rgba(18, 34, 40, 0.48);
+        color: #d7fff8;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 12px 14px;
       }
 
       .adwork-hero-slot.is-ad-hidden,
@@ -193,6 +236,18 @@
         .adwork-hero-slot {
           min-height: 84px;
           padding: 3px 5px;
+        }
+
+        .ad-close-button {
+          width: 26px;
+          height: 26px;
+          top: 5px;
+          right: 5px;
+        }
+
+        .ad-preview-banner {
+          min-height: 76px;
+          font-size: 11px;
         }
 
       }

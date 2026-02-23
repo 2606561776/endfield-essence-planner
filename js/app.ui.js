@@ -2,7 +2,7 @@
   const modules = (window.AppModules = window.AppModules || {});
 
   modules.initUi = function initUi(ctx, state) {
-    const { onMounted, onBeforeUnmount, nextTick, watch } = ctx;
+    const { ref, onMounted, onBeforeUnmount, nextTick, watch } = ctx;
 
     const showBackToTop = state.showBackToTop;
     const showLangMenu = state.showLangMenu;
@@ -17,21 +17,58 @@
 
     const root = typeof document !== "undefined" ? document.documentElement : null;
 
-    const allowedAdHosts = new Set(["end.canmoe.com", "127.0.0.1"]);
+    const allowedAdHosts = new Set(["end.canmoe.com", "127.0.0.1", "localhost"]);
     const adworkScriptSrc = "https://cdn.adwork.net/js/makemoney.js";
     const adMobileBreakpoint = 960;
+    const adPreviewParamKey = "adPreview";
+    const adPreviewMode = state.adPreviewMode || ref(false);
+    const showAdPreviewEntry = state.showAdPreviewEntry || ref(false);
+    const adDismissedSession = state.adDismissedSession || ref(false);
     let adScriptLoadingPromise = null;
+
+    state.adPreviewMode = adPreviewMode;
+    state.showAdPreviewEntry = showAdPreviewEntry;
+    state.adDismissedSession = adDismissedSession;
+
+    const isLocalPreviewHost = (host) => host === "127.0.0.1" || host === "localhost" || host === "::1";
+    const resolveCurrentHost = () =>
+      (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase();
+    const isAdPreviewEnabledByQuery = () => {
+      if (typeof window === "undefined") return false;
+      try {
+        const params = new URLSearchParams(window.location.search || "");
+        const value = (params.get(adPreviewParamKey) || "").trim().toLowerCase();
+        return value === "1" || value === "true" || value === "yes" || value === "on";
+      } catch (error) {
+        return false;
+      }
+    };
+    const syncAdPreviewFlags = () => {
+      if (typeof window === "undefined") return;
+      const host = resolveCurrentHost();
+      const local = isLocalPreviewHost(host);
+      adPreviewMode.value = local && isAdPreviewEnabledByQuery();
+      showAdPreviewEntry.value = local && !adPreviewMode.value;
+    };
 
     const evaluateAdVisibility = () => {
       if (typeof window === "undefined") {
         canShowAds.value = false;
         return;
       }
+      if (adDismissedSession.value) {
+        canShowAds.value = false;
+        return;
+      }
+      if (adPreviewMode.value) {
+        canShowAds.value = true;
+        return;
+      }
       if (window.__adworkScriptError) {
         canShowAds.value = false;
         return;
       }
-      const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase();
+      const host = resolveCurrentHost();
       canShowAds.value = allowedAdHosts.has(host);
     };
 
@@ -42,6 +79,9 @@
 
     const ensureAdScriptLoaded = () => {
       if (typeof window === "undefined" || typeof document === "undefined") {
+        return Promise.resolve(false);
+      }
+      if (adPreviewMode.value) {
         return Promise.resolve(false);
       }
       if (!canShowAds.value || window.__adworkScriptError) {
@@ -147,6 +187,11 @@
       if (typeof window === "undefined" || typeof document === "undefined") return;
       const slots = document.querySelectorAll(adSlotSelector);
       slots.forEach((slot) => {
+        if (adPreviewMode.value && !adDismissedSession.value) {
+          slot.classList.remove("is-ad-hidden");
+          slot.classList.remove("is-ad-soft-hidden");
+          return;
+        }
         const container = slot.querySelector(".adwork-net");
         const hasContainer = container instanceof HTMLElement;
         const richNodes =
@@ -352,6 +397,40 @@
       }
     };
 
+    const dismissAdsForSession = () => {
+      adDismissedSession.value = true;
+      canShowAds.value = false;
+      scheduleAdSlotVisibility();
+    };
+
+    const enableAdPreview = () => {
+      if (typeof window === "undefined") return;
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set(adPreviewParamKey, "1");
+        window.location.href = url.toString();
+      } catch (error) {
+        // ignore malformed URL cases
+      }
+    };
+
+    const scrollToWeaponList = () => {
+      if (typeof window === "undefined" || typeof document === "undefined") return;
+      const anchor = document.querySelector(".weapon-list-anchor");
+      if (!anchor) return;
+      const currentTop = window.scrollY || window.pageYOffset || 0;
+      const targetTop = Math.max(0, currentTop + anchor.getBoundingClientRect().top - 72);
+      if (typeof window.scrollTo === "function") {
+        try {
+          window.scrollTo({ top: targetTop, behavior: "smooth" });
+          return;
+        } catch (error) {
+          // ignore and fall back
+        }
+      }
+      window.scrollTo(0, targetTop);
+    };
+
     const handleDocClick = (event) => {
       if (!event || !event.target || !event.target.closest) {
         showSecondaryMenu.value = false;
@@ -383,6 +462,7 @@
       state.appReady.value = true;
       bindSystemThemeListener();
       applyTheme(state.themePreference.value || "auto");
+      syncAdPreviewFlags();
       updateViewportOrientation();
       window.addEventListener("resize", updateViewportOrientation);
       updateViewportSafeBottom();
@@ -459,7 +539,10 @@
     });
 
     state.scrollToTop = scrollToTop;
+    state.scrollToWeaponList = scrollToWeaponList;
     state.setThemeMode = setThemeMode;
     state.togglePlanConfig = togglePlanConfig;
+    state.dismissAdsForSession = dismissAdsForSession;
+    state.enableAdPreview = enableAdPreview;
   };
 })();
