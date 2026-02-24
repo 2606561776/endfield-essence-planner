@@ -457,8 +457,6 @@
         isTutorialGuideWeapon: state.isTutorialGuideWeapon,
         canShowAds: state.canShowAds,
         adPreviewMode: state.adPreviewMode,
-        showAdPreviewEntry: state.showAdPreviewEntry,
-        enableAdPreview: state.enableAdPreview,
         dismissAdsForSession: state.dismissAdsForSession,
         isPortrait: state.isPortrait,
         isAdPortrait: state.isAdPortrait,

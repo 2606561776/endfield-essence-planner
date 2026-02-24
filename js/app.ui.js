@@ -16,18 +16,22 @@
     const loadScriptOnce = state.loadScriptOnce;
 
     const root = typeof document !== "undefined" ? document.documentElement : null;
+    const defaultBackgroundUrl = "https://img.canmoe.com/image?img=ua";
+    const defaultBackgroundCssValue = `url("${defaultBackgroundUrl}")`;
+    const preloadBackgroundTimeoutMs = 850;
+    const preloadBackgroundFadeMs = 720;
+    let preloadBackgroundFadeTimer = null;
 
     const allowedAdHosts = new Set(["end.canmoe.com", "127.0.0.1", "localhost"]);
     const providerScriptSrc = "https://cdn.adwork.net/js/makemoney.js";
-    const adMobileBreakpoint = 960;
+    const mobileLayoutBreakpoint = 1024;
+    const adMobileBreakpoint = mobileLayoutBreakpoint;
     const adPreviewParamKey = "adPreview";
     const adPreviewMode = state.adPreviewMode || ref(false);
-    const showAdPreviewEntry = state.showAdPreviewEntry || ref(false);
     const adDismissedSession = state.adDismissedSession || ref(false);
     let adScriptLoadingPromise = null;
 
     state.adPreviewMode = adPreviewMode;
-    state.showAdPreviewEntry = showAdPreviewEntry;
     state.adDismissedSession = adDismissedSession;
 
     const isLocalPreviewHost = (host) => host === "127.0.0.1" || host === "localhost" || host === "::1";
@@ -48,7 +52,112 @@
       const host = resolveCurrentHost();
       const local = isLocalPreviewHost(host);
       adPreviewMode.value = local && isAdPreviewEnabledByQuery();
-      showAdPreviewEntry.value = local && !adPreviewMode.value;
+    };
+
+    const readStorageValue = (key) => {
+      if (!key) return "";
+      try {
+        return String(localStorage.getItem(key) || "");
+      } catch (error) {
+        return "";
+      }
+    };
+
+    const hasStoredCustomBackground = () => {
+      const key = state.backgroundStorageKey || "planner-bg-image:v1";
+      const raw = readStorageValue(key);
+      if (!raw) return false;
+      if (raw.startsWith("data:")) return true;
+      try {
+        const parsed = JSON.parse(raw);
+        return Boolean(parsed && typeof parsed.data === "string" && parsed.data.trim());
+      } catch (error) {
+        return false;
+      }
+    };
+
+    const hasStoredBackgroundApi = () => {
+      const key = state.backgroundApiStorageKey || "planner-bg-api:v1";
+      const raw = readStorageValue(key);
+      return Boolean(raw && raw.trim());
+    };
+
+    const setPreloadPhaseText = ({ status = "", current = "", help = "" } = {}) => {
+      if (typeof document === "undefined") return;
+      const overlay = document.getElementById("app-preload");
+      if (!overlay) return;
+      const statusEl = overlay.querySelector(".preload-status");
+      const currentEl = overlay.querySelector(".preload-current");
+      const helpEl = overlay.querySelector(".preload-help");
+      if (statusEl) statusEl.textContent = status;
+      if (currentEl) currentEl.textContent = current;
+      if (helpEl) helpEl.textContent = help;
+    };
+
+    const shouldWarmupDefaultBackground = () => {
+      if (!root || typeof Image !== "function") return false;
+      if (!root.classList.contains("preload")) return false;
+      if (state.lowGpuEnabled && state.lowGpuEnabled.value) return false;
+      const customFile = state.customBackground ? String(state.customBackground.value || "").trim() : "";
+      if (customFile) return false;
+      const customApi = state.customBackgroundApi ? String(state.customBackgroundApi.value || "").trim() : "";
+      if (customApi) return false;
+      if (hasStoredCustomBackground()) return false;
+      if (hasStoredBackgroundApi()) return false;
+      const perfModeKey = state.perfModeStorageKey || "planner-perf-mode:v1";
+      const perfMode = readStorageValue(perfModeKey);
+      if (perfMode === "low") return false;
+      return true;
+    };
+
+    const warmupBackgroundBeforeFinish = () => {
+      if (!shouldWarmupDefaultBackground()) {
+        return Promise.resolve(false);
+      }
+      const t = typeof state.t === "function" ? state.t : (text) => text;
+      if (root) {
+        root.style.setProperty("--bg-image", defaultBackgroundCssValue);
+      }
+      setPreloadPhaseText({
+        status: t("资源已就绪，正在准备背景…"),
+        current: t("当前：背景（可选）"),
+        help: t("背景准备不会阻塞太久，超时会先进入页面。"),
+      });
+      return new Promise((resolve) => {
+        let settled = false;
+        const image = new Image();
+        const settle = (loaded) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          let applied = false;
+          if (
+            loaded &&
+            root &&
+            root.classList.contains("preload") &&
+            shouldWarmupDefaultBackground()
+          ) {
+            root.classList.add("bg-image-fading-in");
+            applied = true;
+            if (preloadBackgroundFadeTimer) {
+              clearTimeout(preloadBackgroundFadeTimer);
+            }
+            preloadBackgroundFadeTimer = setTimeout(() => {
+              preloadBackgroundFadeTimer = null;
+              if (root) {
+                root.classList.remove("bg-image-fading-in");
+              }
+            }, preloadBackgroundFadeMs);
+          }
+          resolve(applied);
+        };
+        const timeoutId = setTimeout(() => {
+          settle(false);
+        }, preloadBackgroundTimeoutMs);
+        image.onload = () => settle(true);
+        image.onerror = () => settle(false);
+        image.src = defaultBackgroundUrl;
+      });
     };
 
     const evaluateAdVisibility = () => {
@@ -299,7 +408,13 @@
 
     const updateViewportOrientation = () => {
       if (typeof window === "undefined") return;
-      if (window.matchMedia) {
+      const viewportWidth =
+        window.innerWidth ||
+        (document.documentElement && document.documentElement.clientWidth) ||
+        0;
+      if (viewportWidth > 0) {
+        isPortrait.value = viewportWidth <= mobileLayoutBreakpoint;
+      } else if (window.matchMedia) {
         isPortrait.value = window.matchMedia("(orientation: portrait)").matches;
       } else {
         isPortrait.value = window.innerHeight >= window.innerWidth;
@@ -409,17 +524,6 @@
       scheduleAdSlotVisibility();
     };
 
-    const enableAdPreview = () => {
-      if (typeof window === "undefined") return;
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.set(adPreviewParamKey, "1");
-        window.location.href = url.toString();
-      } catch (error) {
-        // ignore malformed URL cases
-      }
-    };
-
     const scrollToWeaponList = () => {
       if (typeof window === "undefined" || typeof document === "undefined") return;
       const anchor = document.querySelector(".weapon-list-anchor");
@@ -498,10 +602,22 @@
       document.addEventListener("click", handleDocClick);
       document.addEventListener("keydown", handleDocKeydown);
       primeAdSlotVisibility();
+      const finalizePreload = () => {
+        warmupBackgroundBeforeFinish()
+          .catch(() => false)
+          .then((loaded) => {
+            finishPreload();
+            if (!loaded && typeof state.reapplyBackground === "function") {
+              requestAnimationFrame(() => {
+                state.reapplyBackground();
+              });
+            }
+          });
+      };
       if (typeof nextTick === "function") {
-        nextTick(() => requestAnimationFrame(() => finishPreload()));
+        nextTick(() => requestAnimationFrame(finalizePreload));
       } else {
-        requestAnimationFrame(() => finishPreload());
+        requestAnimationFrame(finalizePreload);
       }
     });
 
@@ -542,6 +658,13 @@
       clearBackToTopTimer();
       document.removeEventListener("click", handleDocClick);
       document.removeEventListener("keydown", handleDocKeydown);
+      if (preloadBackgroundFadeTimer) {
+        clearTimeout(preloadBackgroundFadeTimer);
+        preloadBackgroundFadeTimer = null;
+      }
+      if (root) {
+        root.classList.remove("bg-image-fading-in");
+      }
     });
 
     state.scrollToTop = scrollToTop;
@@ -549,7 +672,6 @@
     state.setThemeMode = setThemeMode;
     state.togglePlanConfig = togglePlanConfig;
     state.dismissAdsForSession = dismissAdsForSession;
-    state.enableAdPreview = enableAdPreview;
   };
 })();
 

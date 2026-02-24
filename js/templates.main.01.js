@@ -195,9 +195,6 @@
       <div v-if="adPreviewMode" class="slot-preview-notice">
         {{ t("广告预览模式已开启，仅用于本地查看广告位样式。") }}
       </div>
-      <button v-if="showAdPreviewEntry" class="slot-preview-entry" type="button" @click="enableAdPreview">
-        {{ t("预览广告位") }}
-      </button>
       <main class="layout">
         <transition name="view-switch" mode="out-in">
           <div v-if="currentView === 'planner'" key="planner" class="view-shell planner-shell">
@@ -302,13 +299,28 @@
               <div class="filter-title">{{ t("基础属性") }}</div>
               <div class="filter-chips">
                 <button
-                  v-for="value in s1Options"
-                  :key="value"
+                  v-for="option in s1Options"
+                  :key="option.value"
                   class="filter-chip"
-                  :class="{ 'is-active': filterS1.includes(value) }"
-                  @click="toggleFilterValue('s1', value)"
+                  :class="{
+                    'is-active': filterS1.includes(option.value),
+                    'is-disabled': option.isDisabled && !filterS1.includes(option.value),
+                  }"
+                  :title="
+                    option.isDisabled && !filterS1.includes(option.value)
+                      ? t(option.isOnlyFourStarHidden ? '仅四星（已隐藏）' : '当前筛选下暂无武器')
+                      : ''
+                  "
+                  @click="
+                    option.isDisabled && !filterS1.includes(option.value)
+                      ? null
+                      : toggleFilterValue('s1', option.value)
+                  "
                 >
-                  {{ formatS1(value) }}
+                  <span>{{ formatS1(option.value) }}</span>
+                  <span v-if="option.isDisabled && !filterS1.includes(option.value)" class="chip-meta">
+                    {{ t(option.isOnlyFourStarHidden ? "仅四星（已隐藏）" : "暂无") }}
+                  </span>
                 </button>
               </div>
             </div>
@@ -316,13 +328,28 @@
               <div class="filter-title">{{ t("附加属性") }}</div>
               <div class="filter-chips">
                 <button
-                  v-for="value in s2Options"
-                  :key="value"
+                  v-for="option in s2Options"
+                  :key="option.value"
                   class="filter-chip"
-                  :class="{ 'is-active': filterS2.includes(value) }"
-                  @click="toggleFilterValue('s2', value)"
+                  :class="{
+                    'is-active': filterS2.includes(option.value),
+                    'is-disabled': option.isDisabled && !filterS2.includes(option.value),
+                  }"
+                  :title="
+                    option.isDisabled && !filterS2.includes(option.value)
+                      ? t(option.isOnlyFourStarHidden ? '仅四星（已隐藏）' : '当前筛选下暂无武器')
+                      : ''
+                  "
+                  @click="
+                    option.isDisabled && !filterS2.includes(option.value)
+                      ? null
+                      : toggleFilterValue('s2', option.value)
+                  "
                 >
-                  {{ tTerm("s2", value) }}
+                  <span>{{ tTerm("s2", option.value) }}</span>
+                  <span v-if="option.isDisabled && !filterS2.includes(option.value)" class="chip-meta">
+                    {{ t(option.isOnlyFourStarHidden ? "仅四星（已隐藏）" : "暂无") }}
+                  </span>
                 </button>
               </div>
             </div>
@@ -335,16 +362,26 @@
                   class="filter-chip"
                   :class="{
                     'is-active': filterS3.includes(option.value),
-                    'is-disabled': option.isEmpty,
+                    'is-disabled': option.isDisabled && !filterS3.includes(option.value),
                   }"
-                  :title="option.isEmpty ? t('当前武器暂无该词条') : ''"
-                  @click="option.isEmpty ? null : toggleFilterValue('s3', option.value)"
+                  :title="
+                    option.isDisabled && !filterS3.includes(option.value)
+                      ? t(option.isOnlyFourStarHidden ? '仅四星（已隐藏）' : '当前筛选下暂无武器')
+                      : ''
+                  "
+                  @click="
+                    option.isDisabled && !filterS3.includes(option.value)
+                      ? null
+                      : toggleFilterValue('s3', option.value)
+                  "
                 >
                   <span>{{ tTerm("s3", option.value) }}</span>
-                  <span v-if="option.isEmpty" class="chip-meta">{{ t("暂无") }}</span>
+                  <span v-if="option.isDisabled && !filterS3.includes(option.value)" class="chip-meta">
+                    {{ t(option.isOnlyFourStarHidden ? "仅四星（已隐藏）" : "暂无") }}
+                  </span>
                 </button>
               </div>
-              <div class="filter-hint">{{ t("灰色词条代表当前暂无武器") }}</div>
+              <div class="filter-hint">{{ t("灰色属性代表当前筛选下暂无武器") }}</div>
             </div>
           </div>
 

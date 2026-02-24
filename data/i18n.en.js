@@ -116,6 +116,9 @@ window.I18N["en"] = {
     "当前武器暂无该词条": "No weapons with this term yet",
     "暂无": "None",
     "灰色词条代表当前暂无武器": "Gray terms mean no weapons currently",
+    "当前筛选下暂无武器": "No weapons under current filters",
+    "仅四星（已隐藏）": "4★ only (hidden)",
+    "灰色属性代表当前筛选下暂无武器": "Gray attributes mean no weapons under current filters",
     "未选择任何武器": "No weapons selected",
     "备注：": "Note:",
     "排除": "Excluded",
@@ -234,8 +237,11 @@ window.I18N["en"] = {
     "因此需要手动选择两种属性(当前已选中“{weapon}（{s1}）”,所以会自动选择一个属性为 {s1} 且无法取消)。": "So you need to pick two attributes manually (since “{weapon} ({s1})” is already selected, {s1} is auto-locked and can't be removed).",
     "请点击“{weaponA}（{s1A}）”与“{weaponB}（{s1B}）” 选择两种属性。": "Click “{weaponA} ({s1A})” and “{weaponB} ({s1B})” to choose two attributes.",
     "竖屏时请先点击上方“{label}”标签进入方案列表。": "In portrait mode, tap the “{label}” tab above to open the plan list.",
-    "少女祈祷中": "Now Praying",
-    "首次打开或强制刷新可能稍慢": "First load or hard refresh may be a bit slow"
+    "少女祈祷中": "少女祈祷中 / A Maiden at Prayer...",
+    "首次打开或强制刷新可能稍慢": "First load or hard refresh may be a bit slow",
+    "资源已就绪，正在准备背景…": "Resources ready, preparing background...",
+    "当前：背景（可选）": "Current: background (optional)",
+    "背景准备不会阻塞太久，超时会先进入页面。": "Background preparation will not block for long; the page will continue on timeout."
   },
   "terms": {
     "s1": {

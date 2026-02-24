@@ -31,6 +31,7 @@
     };
 
     const locale = ref(detectLocale());
+    const localeRenderVersion = ref(0);
     const localeLabels = {
       "zh-CN": "简体中文",
       "zh-TW": "繁體中文",
@@ -94,7 +95,11 @@
       localeLoading.value = true;
       try {
         await state.loadScriptOnce(src);
-        return isLocaleLoaded(normalized);
+        const loaded = isLocaleLoaded(normalized);
+        if (loaded) {
+          localeRenderVersion.value += 1;
+        }
+        return loaded;
       } catch (error) {
         return false;
       } finally {
@@ -134,6 +139,7 @@
       );
     };
     const t = (key, params) => {
+      void localeRenderVersion.value;
       const strings = getStrings(locale.value);
       const fallbackStrings = getStrings(fallbackLocale);
       const raw =
@@ -164,6 +170,7 @@
       }))
     );
     const tTerm = (category, value) => {
+      void localeRenderVersion.value;
       if (!value) return value;
       const terms = getTerms(locale.value);
       const fallbackTerms = getTerms(fallbackLocale);
@@ -229,6 +236,7 @@
         } catch (error) {
           // ignore storage errors
         }
+        localeRenderVersion.value += 1;
         updateMeta();
         updatePreloadText();
       },

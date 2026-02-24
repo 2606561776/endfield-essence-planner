@@ -2,10 +2,13 @@
   const modules = (window.AppModules = window.AppModules || {});
 
   modules.initBackground = function initBackground(ctx, state) {
-    const { watch, onMounted } = ctx;
+    const { watch, onMounted, onBeforeUnmount } = ctx;
     const storageKey = state.backgroundStorageKey || "planner-bg-image:v1";
     const apiStorageKey = state.backgroundApiStorageKey || "planner-bg-api:v1";
     const root = typeof document !== "undefined" ? document.documentElement : null;
+    const defaultBackgroundUrl = "https://img.canmoe.com/image?img=ua";
+    let mounted = false;
+    let fallbackFadeTimer = null;
 
     const normalizeUrlValue = (value) => {
       const trimmed = String(value || "").trim();
@@ -14,6 +17,8 @@
       const safe = trimmed.replace(/"/g, '\\"');
       return `url("${safe}")`;
     };
+
+    const defaultBackgroundCssValue = normalizeUrlValue(defaultBackgroundUrl);
 
     const setRootBackground = (value) => {
       if (!root) return;
@@ -25,23 +30,81 @@
       }
     };
 
+    const getInlineBackgroundValue = () => {
+      if (!root) return "";
+      return String(root.style.getPropertyValue("--bg-image") || "").trim();
+    };
+
+    const markBackgroundFadeIn = () => {
+      if (!root) return;
+      root.classList.add("bg-image-fading-in");
+      if (fallbackFadeTimer) {
+        clearTimeout(fallbackFadeTimer);
+      }
+      fallbackFadeTimer = setTimeout(() => {
+        fallbackFadeTimer = null;
+        if (!root) return;
+        root.classList.remove("bg-image-fading-in");
+      }, 720);
+    };
+
+    const clearFadeTimer = () => {
+      if (fallbackFadeTimer) {
+        clearTimeout(fallbackFadeTimer);
+        fallbackFadeTimer = null;
+        if (root) {
+          root.classList.remove("bg-image-fading-in");
+        }
+      }
+    };
+
+    const shouldUseDefaultBackground = () => {
+      if (!root) return false;
+      if (state.lowGpuEnabled && state.lowGpuEnabled.value) return false;
+      const customFile = state.customBackground ? state.customBackground.value : "";
+      if (customFile) return false;
+      const customApi = state.customBackgroundApi ? state.customBackgroundApi.value : "";
+      if (customApi) return false;
+      return true;
+    };
+
+    const applyRootBackground = (value, options = {}) => {
+      if (!root) return false;
+      const normalized = normalizeUrlValue(value);
+      const current = getInlineBackgroundValue();
+      if (current === normalized) return false;
+      if (normalized) {
+        setRootBackground(normalized);
+      } else {
+        setRootBackground("");
+      }
+      if (normalized && options.fade && !root.classList.contains("preload")) {
+        markBackgroundFadeIn();
+      }
+      return true;
+    };
+
     const applyBackground = () => {
       if (!root) return;
       if (state.lowGpuEnabled && state.lowGpuEnabled.value) {
-        setRootBackground("");
+        applyRootBackground("", { fade: false });
         return;
       }
       const customFile = state.customBackground ? state.customBackground.value : "";
       if (customFile) {
-        setRootBackground(customFile);
+        applyRootBackground(customFile, { fade: mounted });
         return;
       }
       const customApi = state.customBackgroundApi ? state.customBackgroundApi.value : "";
       if (customApi) {
-        setRootBackground(customApi);
+        applyRootBackground(customApi, { fade: mounted });
         return;
       }
-      setRootBackground("");
+      if (!shouldUseDefaultBackground()) {
+        applyRootBackground("", { fade: false });
+        return;
+      }
+      applyRootBackground(defaultBackgroundCssValue, { fade: mounted });
     };
 
     const readStoredBackground = () => {
@@ -186,10 +249,18 @@
     );
 
     onMounted(() => {
+      mounted = true;
       applyBackground();
     });
 
+    if (typeof onBeforeUnmount === "function") {
+      onBeforeUnmount(() => {
+        clearFadeTimer();
+      });
+    }
+
     state.handleBackgroundFile = handleBackgroundFile;
     state.clearCustomBackground = clearCustomBackground;
+    state.reapplyBackground = applyBackground;
   };
 })();

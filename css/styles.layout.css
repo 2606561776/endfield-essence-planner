@@ -25,13 +25,18 @@
         z-index: -2;
         background-image:
           radial-gradient(1400px 900px at 50% 20%, rgba(77, 214, 201, 0.12), transparent 60%),
+          var(--bg-image),
           linear-gradient(120deg, rgba(11, 15, 20, 0.92), rgba(16, 23, 34, 0.92) 45%, rgba(20, 28, 43, 0.92));
-        background-size: auto, auto;
-        background-position: center, center;
-        background-repeat: no-repeat;
+        background-size: auto, cover, auto;
+        background-position: center, center, center;
+        background-repeat: no-repeat, no-repeat, no-repeat;
         opacity: 1;
-        transition: opacity 0.6s ease;
+        transition: opacity 0.75s ease;
         pointer-events: none;
+      }
+
+      html.bg-image-fading-in body::before {
+        opacity: 0.3;
       }
 
       html.preload body::before {
@@ -270,7 +275,7 @@
         letter-spacing: 0.08em;
       }
 
-      @media (max-width: 960px) {
+      @media (max-width: 1024px) {
         .mobile-tabs {
           display: flex;
         }
@@ -624,25 +629,6 @@
         color: var(--muted);
         font-size: 12px;
         letter-spacing: 0.04em;
-      }
-
-      .slot-preview-entry {
-        position: fixed;
-        right: 14px;
-        bottom: 86px;
-        z-index: 48;
-        border: 1px solid rgba(77, 214, 201, 0.45);
-        background: rgba(8, 12, 18, 0.9);
-        color: #d7fff8;
-        border-radius: 999px;
-        padding: 8px 14px;
-        font-size: 12px;
-        cursor: pointer;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
-      }
-
-      .slot-preview-entry:hover {
-        border-color: rgba(77, 214, 201, 0.65);
       }
 
       .ai-chip {

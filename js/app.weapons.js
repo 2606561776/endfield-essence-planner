@@ -13,19 +13,88 @@
       return values;
     };
 
-    const s1Options = computed(() =>
-      uniqueSorted(weapons.map((weapon) => weapon.s1), (a, b) => {
+    const matchesSearchQuery = (weapon, query, searchIndex) => {
+      if (!query) return true;
+      return (searchIndex.get(weapon.name) || "").includes(query);
+    };
+
+    const matchesCrossGroupFilters = (weapon, group) => {
+      if (group !== "s1" && state.filterS1.value.length && !state.filterS1.value.includes(weapon.s1)) {
+        return false;
+      }
+      if (group !== "s2" && state.filterS2.value.length && !state.filterS2.value.includes(weapon.s2)) {
+        return false;
+      }
+      if (group !== "s3" && state.filterS3.value.length && !state.filterS3.value.includes(weapon.s3)) {
+        return false;
+      }
+      return true;
+    };
+
+    const buildFilterOptionEntry = (group, value, query, searchIndex, hideFourStarWeapons) => {
+      const list = Array.isArray(state.baseSortedWeapons) && state.baseSortedWeapons.length
+        ? state.baseSortedWeapons
+        : weapons;
+      let fullCount = 0;
+      let effectiveCount = 0;
+      for (let i = 0; i < list.length; i += 1) {
+        const weapon = list[i];
+        if (!matchesSearchQuery(weapon, query, searchIndex)) continue;
+        if (!matchesCrossGroupFilters(weapon, group)) continue;
+        if (weapon[group] !== value) continue;
+        fullCount += 1;
+        if (!(hideFourStarWeapons && weapon.rarity === 4)) {
+          effectiveCount += 1;
+        }
+      }
+      const isEmpty = fullCount === 0;
+      const isOnlyFourStarHidden = !isEmpty && effectiveCount === 0 && hideFourStarWeapons;
+      return {
+        value,
+        count: effectiveCount,
+        fullCount,
+        effectiveCount,
+        isEmpty,
+        isOnlyFourStarHidden,
+        isDisabled: effectiveCount === 0,
+      };
+    };
+
+    const s1Options = computed(() => {
+      const query = normalizeText(state.searchQuery.value);
+      const searchIndex = state.weaponSearchIndex.value;
+      const hideFourStarWeapons = Boolean(
+        state.recommendationConfig.value && state.recommendationConfig.value.hideFourStarWeapons
+      );
+      const values = uniqueSorted(weapons.map((weapon) => weapon.s1), (a, b) => {
         return getS1OrderIndex(a) - getS1OrderIndex(b);
-      })
-    );
-    const s2Options = computed(() =>
-      uniqueSorted(weapons.map((weapon) => weapon.s2), (a, b) => {
+      });
+      return values.map((value) =>
+        buildFilterOptionEntry("s1", value, query, searchIndex, hideFourStarWeapons)
+      );
+    });
+
+    const s2Options = computed(() => {
+      const query = normalizeText(state.searchQuery.value);
+      const searchIndex = state.weaponSearchIndex.value;
+      const hideFourStarWeapons = Boolean(
+        state.recommendationConfig.value && state.recommendationConfig.value.hideFourStarWeapons
+      );
+      const values = uniqueSorted(weapons.map((weapon) => weapon.s2), (a, b) => {
         return a.localeCompare(b, "zh-Hans-CN");
-      })
-    );
+      });
+      return values.map((value) =>
+        buildFilterOptionEntry("s2", value, query, searchIndex, hideFourStarWeapons)
+      );
+    });
+
     const s3OptionEntries = computed(() => {
+      const query = normalizeText(state.searchQuery.value);
+      const searchIndex = state.weaponSearchIndex.value;
+      const hideFourStarWeapons = Boolean(
+        state.recommendationConfig.value && state.recommendationConfig.value.hideFourStarWeapons
+      );
       const weaponValues = weapons.map((weapon) => weapon.s3).filter(Boolean);
-      const weaponCounts = countBy(weaponValues);
       const dungeonValues = dungeons.reduce((acc, dungeon) => {
         if (Array.isArray(dungeon.s3_pool)) {
           acc.push(...dungeon.s3_pool);
@@ -36,11 +105,9 @@
         [...weaponValues, ...dungeonValues],
         (a, b) => a.localeCompare(b, "zh-Hans-CN")
       );
-      return values.map((value) => ({
-        value,
-        count: weaponCounts[value] || 0,
-        isEmpty: !weaponCounts[value],
-      }));
+      return values.map((value) =>
+        buildFilterOptionEntry("s3", value, query, searchIndex, hideFourStarWeapons)
+      );
     });
 
     const excludedNameSet = computed(() => {

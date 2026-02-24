@@ -69,6 +69,13 @@
       if (document.visibilityState && document.visibilityState !== "visible") {
         return false;
       }
+      if (
+        typeof document !== "undefined" &&
+        document.documentElement &&
+        document.documentElement.classList.contains("preload")
+      ) {
+        return false;
+      }
       return performance.now() >= perfAutoBlockedUntil;
     };
 

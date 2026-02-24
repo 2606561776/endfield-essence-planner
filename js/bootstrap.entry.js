@@ -20,13 +20,415 @@
     "./js/app.script-chain.js",
     "./js/app.js",
   ];
+  var langStorageKey = "planner-lang";
+  var fallbackBootLocale = "zh-CN";
+  var supportedBootLocales = ["zh-CN", "zh-TW", "en", "ja"];
+  var bootI18n = {
+    "zh-CN": {
+      preload_title: "少女祈祷中",
+      preload_note: "首次打开或强制刷新可能稍慢",
+      preload_status_prepare: "正在准备资源…",
+      preload_status_failed: "资源加载失败",
+      preload_status_ready: "资源已就绪，正在初始化页面…",
+      preload_status_staging: "资源已下载，正在启动下一阶段…",
+      preload_status_parallel: "正在并行加载资源…",
+      preload_status_loading: "正在加载资源…",
+      preload_current_failed: "失败项：{label}",
+      preload_current_parallel: "并行：{labels}{more}",
+      preload_current_parallel_more: " 等 {count} 项",
+      preload_current_done: "已完成：{labels}",
+      preload_current_now: "当前：{label}",
+      preload_current_wait_stage: "最近完成：{labels}；等待下一阶段…",
+      preload_current_wait_core: "当前：等待核心模块启动…",
+      preload_current_wait_mount: "等待应用挂载完成…",
+      preload_help_short: "加载时间较长通常由网络波动或缓存导致，请稍候。",
+      preload_help_long:
+        "若长时间无变化，可点击“重试加载”或“刷新页面”；仍未恢复请点击“反馈问题”。",
+      action_retry: "重试加载",
+      action_refresh: "刷新页面",
+      action_feedback: "反馈问题",
+      unknown_resource: "未知资源",
+      unknown_item: "未知",
+      error_title_page_load: "页面加载失败",
+      error_summary_unknown: "出现未知错误，请稍后重试。",
+      error_details_title: "错误详情",
+      error_suggestions_title: "建议处理",
+      error_title_resource: "页面资源加载失败",
+      error_summary_script_chain_missing: "脚本加载清单缺失，应用暂时无法启动。",
+      error_detail_missing_chain: "缺失资源清单：window.__APP_SCRIPT_CHAIN",
+      error_detail_confirm_chain: "请确认 ./js/app.script-chain.js 已成功部署且可访问",
+      error_summary_core_script: "核心脚本未能完整加载，应用暂时无法启动。",
+      error_summary_core_resource: "核心资源未能完整加载，应用暂时无法启动。",
+      error_title_style: "页面样式加载失败",
+      error_summary_style: "关键样式文件未能完整加载，页面无法正常展示。",
+      error_detail_failed_style: "失败样式：{name}",
+      error_detail_failed_resource: "失败资源：{name}",
+      error_detail_network_state: "网络状态：{state}",
+      error_network_online: "在线",
+      error_network_offline: "离线",
+      error_detail_http_status: "HTTP 状态：{status}{hint}",
+      error_detail_failed_reason: "失败原因：{reason}",
+      error_hint_flaky:
+        "可能原因：网络波动、缓存损坏、CDN 同步延迟或拦截插件阻止脚本请求",
+      error_reason_http: "资源请求返回了错误状态",
+      error_reason_error: "浏览器触发了资源加载错误事件",
+      error_reason_stalled: "资源长时间未进入可用状态（可能连接悬挂或被拦截）",
+      error_reason_stalled_with_status:
+        "资源请求有响应，但样式未进入就绪状态（可能连接悬挂或被拦截）",
+      http_404: "资源不存在或路径错误",
+      http_429: "请求过于频繁（可能被限速）",
+      http_403: "访问被拒绝（也可能触发了访问频率限制）",
+      http_5xx: "服务端异常",
+      suggestion_retry: "点击“重试加载”重新请求关键资源",
+      suggestion_hard_refresh: "按 Ctrl + F5 强制刷新后重试",
+      suggestion_issue_screenshot: "若问题持续，请在 GitHub Issues 附上控制台报错截图",
+      list_sep: "、",
+    },
+    "zh-TW": {
+      preload_title: "少女祈禱中",
+      preload_note: "首次開啟或強制重新整理可能稍慢",
+      preload_status_prepare: "正在準備資源…",
+      preload_status_failed: "資源載入失敗",
+      preload_status_ready: "資源已就緒，正在初始化頁面…",
+      preload_status_staging: "資源已下載，正在啟動下一階段…",
+      preload_status_parallel: "正在並行載入資源…",
+      preload_status_loading: "正在載入資源…",
+      preload_current_failed: "失敗項：{label}",
+      preload_current_parallel: "並行：{labels}{more}",
+      preload_current_parallel_more: " 等 {count} 項",
+      preload_current_done: "已完成：{labels}",
+      preload_current_now: "目前：{label}",
+      preload_current_wait_stage: "最近完成：{labels}；等待下一階段…",
+      preload_current_wait_core: "目前：等待核心模組啟動…",
+      preload_current_wait_mount: "等待應用掛載完成…",
+      preload_help_short: "載入較慢通常由網路波動或快取導致，請稍候。",
+      preload_help_long:
+        "若長時間無變化，可點擊「重試載入」或「重新整理頁面」；仍未恢復請點擊「回報問題」。",
+      action_retry: "重試載入",
+      action_refresh: "重新整理頁面",
+      action_feedback: "回報問題",
+      unknown_resource: "未知資源",
+      unknown_item: "未知",
+      error_title_page_load: "頁面載入失敗",
+      error_summary_unknown: "發生未知錯誤，請稍後再試。",
+      error_details_title: "錯誤詳情",
+      error_suggestions_title: "建議處理",
+      error_title_resource: "頁面資源載入失敗",
+      error_summary_script_chain_missing: "腳本載入清單缺失，應用暫時無法啟動。",
+      error_detail_missing_chain: "缺失資源清單：window.__APP_SCRIPT_CHAIN",
+      error_detail_confirm_chain: "請確認 ./js/app.script-chain.js 已成功部署且可訪問",
+      error_summary_core_script: "核心腳本未完整載入，應用暫時無法啟動。",
+      error_summary_core_resource: "核心資源未完整載入，應用暫時無法啟動。",
+      error_title_style: "頁面樣式載入失敗",
+      error_summary_style: "關鍵樣式檔未完整載入，頁面無法正常展示。",
+      error_detail_failed_style: "失敗樣式：{name}",
+      error_detail_failed_resource: "失敗資源：{name}",
+      error_detail_network_state: "網路狀態：{state}",
+      error_network_online: "連線中",
+      error_network_offline: "離線",
+      error_detail_http_status: "HTTP 狀態：{status}{hint}",
+      error_detail_failed_reason: "失敗原因：{reason}",
+      error_hint_flaky:
+        "可能原因：網路波動、快取損壞、CDN 同步延遲或攔截外掛阻止了腳本請求",
+      error_reason_http: "資源請求返回了錯誤狀態",
+      error_reason_error: "瀏覽器觸發了資源載入錯誤事件",
+      error_reason_stalled: "資源長時間未進入可用狀態（可能連線懸掛或被攔截）",
+      error_reason_stalled_with_status:
+        "資源請求有回應，但樣式未進入就緒狀態（可能連線懸掛或被攔截）",
+      http_404: "資源不存在或路徑錯誤",
+      http_429: "請求過於頻繁（可能被限速）",
+      http_403: "存取被拒絕（也可能觸發了頻率限制）",
+      http_5xx: "伺服器異常",
+      suggestion_retry: "點擊「重試載入」重新請求關鍵資源",
+      suggestion_hard_refresh: "按 Ctrl + F5 強制重新整理後重試",
+      suggestion_issue_screenshot: "若問題持續，請在 GitHub Issues 附上控制台錯誤截圖",
+      list_sep: "、",
+    },
+    en: {
+      preload_title: "少女祈祷中 / A Maiden at Prayer...",
+      preload_note: "First load or hard refresh may be a bit slow",
+      preload_status_prepare: "Preparing resources...",
+      preload_status_failed: "Resource loading failed",
+      preload_status_ready: "Resources ready, initializing page...",
+      preload_status_staging: "Resources downloaded, starting next stage...",
+      preload_status_parallel: "Loading resources in parallel...",
+      preload_status_loading: "Loading resources...",
+      preload_current_failed: "Failed: {label}",
+      preload_current_parallel: "Parallel: {labels}{more}",
+      preload_current_parallel_more: " and {count} more",
+      preload_current_done: "Done: {labels}",
+      preload_current_now: "Current: {label}",
+      preload_current_wait_stage: "Recently done: {labels}; waiting for next stage...",
+      preload_current_wait_core: "Current: waiting for core modules...",
+      preload_current_wait_mount: "Waiting for app mount...",
+      preload_help_short: "Longer loading is usually caused by network or cache. Please wait.",
+      preload_help_long:
+        "If progress stalls for long, try Retry or Refresh. If it still fails, use Report Issue.",
+      action_retry: "Retry",
+      action_refresh: "Refresh",
+      action_feedback: "Report Issue",
+      unknown_resource: "Unknown resource",
+      unknown_item: "Unknown",
+      error_title_page_load: "Page Load Failed",
+      error_summary_unknown: "An unknown error occurred. Please try again later.",
+      error_details_title: "Error Details",
+      error_suggestions_title: "Suggested Actions",
+      error_title_resource: "Resource Load Failed",
+      error_summary_script_chain_missing: "Script chain is missing. The app cannot start right now.",
+      error_detail_missing_chain: "Missing manifest: window.__APP_SCRIPT_CHAIN",
+      error_detail_confirm_chain: "Please verify ./js/app.script-chain.js is deployed and accessible",
+      error_summary_core_script: "Core scripts failed to load completely.",
+      error_summary_core_resource: "Core resources failed to load completely.",
+      error_title_style: "Stylesheet Load Failed",
+      error_summary_style: "Critical styles failed to load. The page cannot render correctly.",
+      error_detail_failed_style: "Failed stylesheet: {name}",
+      error_detail_failed_resource: "Failed resource: {name}",
+      error_detail_network_state: "Network: {state}",
+      error_network_online: "online",
+      error_network_offline: "offline",
+      error_detail_http_status: "HTTP status: {status}{hint}",
+      error_detail_failed_reason: "Failure reason: {reason}",
+      error_hint_flaky:
+        "Possible causes: network fluctuation, broken cache, CDN propagation delay, or blocking extensions.",
+      error_reason_http: "The request returned an error status",
+      error_reason_error: "The browser fired a resource error event",
+      error_reason_stalled:
+        "The resource never became usable for too long (possible hanging connection or interception)",
+      error_reason_stalled_with_status:
+        "The request responded, but the stylesheet never became ready (possible hanging connection or interception)",
+      http_404: "Resource not found or wrong path",
+      http_429: "Too many requests (possibly rate limited)",
+      http_403: "Access denied (can also indicate request rate limiting)",
+      http_5xx: "Server error",
+      suggestion_retry: "Click Retry to request critical resources again",
+      suggestion_hard_refresh: "Press Ctrl + F5 for a hard refresh and retry",
+      suggestion_issue_screenshot: "If the issue persists, attach console screenshots in GitHub Issues",
+      list_sep: ", ",
+    },
+    ja: {
+      preload_title: "少女祈祷中 / 少女、祈りの最中…",
+      preload_note: "初回起動や強制リロードは少し時間がかかる場合があります",
+      preload_status_prepare: "リソースを準備しています…",
+      preload_status_failed: "リソースの読み込みに失敗しました",
+      preload_status_ready: "リソースの準備が完了しました。ページを初期化しています…",
+      preload_status_staging: "リソースの取得完了。次の段階を開始しています…",
+      preload_status_parallel: "リソースを並列で読み込み中…",
+      preload_status_loading: "リソースを読み込み中…",
+      preload_current_failed: "失敗項目：{label}",
+      preload_current_parallel: "並列：{labels}{more}",
+      preload_current_parallel_more: " ほか {count} 件",
+      preload_current_done: "完了：{labels}",
+      preload_current_now: "現在：{label}",
+      preload_current_wait_stage: "直近の完了：{labels}；次の段階を待機中…",
+      preload_current_wait_core: "現在：コアモジュールの起動待ち…",
+      preload_current_wait_mount: "アプリのマウント完了を待機中…",
+      preload_help_short: "読み込みが長い場合、ネットワークやキャッシュが原因のことがあります。",
+      preload_help_long:
+        "長時間変化がない場合は「再試行」または「再読み込み」を試してください。改善しない場合は「問題を報告」。",
+      action_retry: "再試行",
+      action_refresh: "再読み込み",
+      action_feedback: "問題を報告",
+      unknown_resource: "不明なリソース",
+      unknown_item: "不明",
+      error_title_page_load: "ページの読み込みに失敗しました",
+      error_summary_unknown: "不明なエラーが発生しました。しばらくしてから再試行してください。",
+      error_details_title: "エラー詳細",
+      error_suggestions_title: "対処方法",
+      error_title_resource: "リソースの読み込みに失敗しました",
+      error_summary_script_chain_missing:
+        "スクリプト読み込みマニフェストが見つからず、アプリを起動できません。",
+      error_detail_missing_chain: "欠落マニフェスト：window.__APP_SCRIPT_CHAIN",
+      error_detail_confirm_chain:
+        "./js/app.script-chain.js が正しく配置されアクセス可能か確認してください",
+      error_summary_core_script: "コアスクリプトの読み込みが完了しませんでした。",
+      error_summary_core_resource: "コアリソースの読み込みが完了しませんでした。",
+      error_title_style: "スタイルシートの読み込みに失敗しました",
+      error_summary_style: "重要なスタイルの読み込みに失敗し、正しく表示できません。",
+      error_detail_failed_style: "失敗したスタイル：{name}",
+      error_detail_failed_resource: "失敗したリソース：{name}",
+      error_detail_network_state: "ネットワーク：{state}",
+      error_network_online: "オンライン",
+      error_network_offline: "オフライン",
+      error_detail_http_status: "HTTP ステータス：{status}{hint}",
+      error_detail_failed_reason: "失敗理由：{reason}",
+      error_hint_flaky:
+        "原因候補：ネットワーク変動、キャッシュ破損、CDN 反映遅延、拡張機能によるブロック",
+      error_reason_http: "リクエストがエラーステータスを返しました",
+      error_reason_error: "ブラウザでリソース読み込みエラーが発生しました",
+      error_reason_stalled:
+        "長時間リソースが利用可能状態になりませんでした（接続停滞またはブロックの可能性）",
+      error_reason_stalled_with_status:
+        "応答はあるものの、スタイルが利用可能状態になりませんでした（接続停滞またはブロックの可能性）",
+      http_404: "リソースが見つからないか、パスが不正です",
+      http_429: "リクエストが多すぎます（レート制限の可能性）",
+      http_403: "アクセスが拒否されました（レート制限の可能性もあります）",
+      http_5xx: "サーバーエラー",
+      suggestion_retry: "「再試行」で重要リソースを再取得",
+      suggestion_hard_refresh: "Ctrl + F5 で強制再読み込みして再試行",
+      suggestion_issue_screenshot:
+        "改善しない場合は GitHub Issues にコンソールのスクリーンショットを添付してください",
+      list_sep: "、",
+    },
+  };
 
+  var normalizeBootLocale = function (value) {
+    return supportedBootLocales.indexOf(value) >= 0 ? value : fallbackBootLocale;
+  };
+  var detectBootLocale = function () {
+    try {
+      var stored = localStorage.getItem(langStorageKey);
+      if (stored) {
+        return normalizeBootLocale(String(stored));
+      }
+    } catch (error) {
+      // ignore storage errors
+    }
+    var raw = String((navigator && navigator.language) || "").toLowerCase();
+    if (raw.indexOf("zh") === 0) {
+      if (
+        raw.indexOf("tw") >= 0 ||
+        raw.indexOf("hk") >= 0 ||
+        raw.indexOf("mo") >= 0 ||
+        raw.indexOf("hant") >= 0
+      ) {
+        return "zh-TW";
+      }
+      return "zh-CN";
+    }
+    if (raw.indexOf("ja") === 0) return "ja";
+    return "en";
+  };
+  var bootLocale = detectBootLocale();
+  try {
+    if (root) {
+      root.setAttribute("lang", bootLocale);
+    }
+  } catch (error) {
+    // ignore
+  }
+  var interpolateBootText = function (text, params) {
+    if (!params) return String(text || "");
+    return String(text || "").replace(/\{(\w+)\}/g, function (match, name) {
+      if (Object.prototype.hasOwnProperty.call(params, name)) {
+        return String(params[name]);
+      }
+      return match;
+    });
+  };
+  var bt = function (key, params) {
+    var localeTable = bootI18n[bootLocale] || bootI18n[fallbackBootLocale] || {};
+    var fallbackTable = bootI18n[fallbackBootLocale] || {};
+    var raw = Object.prototype.hasOwnProperty.call(localeTable, key)
+      ? localeTable[key]
+      : Object.prototype.hasOwnProperty.call(fallbackTable, key)
+      ? fallbackTable[key]
+      : key;
+    return interpolateBootText(raw, params);
+  };
   var normalizeResourceKey = function (src) {
     try {
       return new URL(src, window.location.href).href;
     } catch (error) {
       return String(src || "");
     }
+  };
+
+  var buildProbeUrl = function (src) {
+    var normalized = normalizeResourceKey(src);
+    if (!normalized) return "";
+    var separator = normalized.indexOf("?") === -1 ? "?" : "&";
+    return normalized + separator + "__boot_probe_ts=" + Date.now();
+  };
+
+  var probeResourceStatus = function (src) {
+    if (typeof fetch !== "function") return Promise.resolve(null);
+    var probeUrl = buildProbeUrl(src);
+    if (!probeUrl) return Promise.resolve(null);
+    var controller = typeof AbortController === "function" ? new AbortController() : null;
+    var timeoutId = null;
+    if (controller) {
+      timeoutId = setTimeout(function () {
+        try {
+          controller.abort();
+        } catch (error) {
+          // ignore abort errors
+        }
+      }, 2200);
+    }
+    var init = {
+      method: "GET",
+      cache: "no-store",
+      credentials: "same-origin",
+    };
+    if (controller) {
+      init.signal = controller.signal;
+    }
+    return fetch(probeUrl, init)
+      .then(
+        function (response) {
+          return {
+            status: Number(response && response.status) || 0,
+          };
+        },
+        function () {
+          return null;
+        }
+      )
+      .then(function (result) {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        return result;
+      });
+  };
+
+  var explainHttpStatus = function (status) {
+    if (!status) return "";
+    if (status === 404) return bt("http_404");
+    if (status === 429) return bt("http_429");
+    if (status === 403) return bt("http_403");
+    if (status >= 500 && status <= 599) return bt("http_5xx");
+    return "";
+  };
+  var isFatalHttpStatus = function (status) {
+    if (!status) return false;
+    return status === 404 || status === 403 || status === 429 || (status >= 500 && status <= 599);
+  };
+
+  var createLoadError = function (kind, src, reason, probe) {
+    var message;
+    if (kind === "style") {
+      if (reason === "stalled") {
+        message = "Failed to load stylesheet (stalled): " + src;
+      } else if (reason === "http") {
+        message = "Failed to load stylesheet (http): " + src;
+      } else if (reason === "error") {
+        message = "Failed to load stylesheet (error): " + src;
+      } else {
+        message = "Failed to load stylesheet: " + src;
+      }
+    } else {
+      message = "Failed to load: " + src;
+    }
+    var error = new Error(message);
+    error.resource = {
+      kind: kind || "resource",
+      src: String(src || ""),
+      reason: String(reason || ""),
+      probe: probe || null,
+    };
+    return error;
+  };
+  var describeStyleFailureReason = function (reason, status) {
+    if (reason === "http") return bt("error_reason_http");
+    if (reason === "error") return bt("error_reason_error");
+    if (reason === "stalled") {
+      if (status && !isFatalHttpStatus(status)) {
+        return bt("error_reason_stalled_with_status");
+      }
+      return bt("error_reason_stalled");
+    }
+    return "";
   };
 
   var applyPreloadTheme = function () {
@@ -62,6 +464,16 @@
     }
   };
 
+  var syncPreloadStaticText = function (overlay) {
+    if (!overlay) return;
+    var title = overlay.querySelector(".preload-title");
+    var note = overlay.querySelector(".preload-note") || overlay.querySelector(".preload-sub");
+    var status = overlay.querySelector(".preload-status");
+    if (title) title.textContent = bt("preload_title");
+    if (note) note.textContent = bt("preload_note");
+    if (status) status.textContent = bt("preload_status_prepare");
+  };
+
   var ensureShell = function () {
     if (!document.body) return false;
     var preload = document.getElementById("app-preload");
@@ -70,9 +482,15 @@
       preload.id = "app-preload";
       preload.innerHTML =
         '<div class="preload-card">' +
-        '<div class="preload-title">少女祈祷中</div>' +
-        '<div class="preload-sub preload-note">首次打开或强制刷新可能稍慢</div>' +
-        '<div class="preload-status" aria-live="polite">正在准备资源…</div>' +
+        '<div class="preload-title">' +
+        bt("preload_title") +
+        "</div>" +
+        '<div class="preload-sub preload-note">' +
+        bt("preload_note") +
+        "</div>" +
+        '<div class="preload-status" aria-live="polite">' +
+        bt("preload_status_prepare") +
+        "</div>" +
         '<div class="preload-current" aria-live="polite"></div>' +
         '<div class="preload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">' +
         '<span class="preload-progress-fill" aria-valuenow="0"></span>' +
@@ -80,6 +498,8 @@
         '<div class="preload-count" aria-live="polite">0/0</div>' +
         "</div>";
       document.body.insertBefore(preload, document.body.firstChild || null);
+    } else {
+      syncPreloadStaticText(preload);
     }
     var app = document.getElementById("app");
     if (!app) {
@@ -102,14 +522,16 @@
       current: overlay ? overlay.querySelector(".preload-current") : null,
       count: overlay ? overlay.querySelector(".preload-count") : null,
       progressFill: overlay ? overlay.querySelector(".preload-progress-fill") : null,
+      help: overlay ? overlay.querySelector(".preload-help") : null,
+      actions: overlay ? overlay.querySelector(".preload-actions") : null,
     };
   };
 
   var ensureErrorRenderer = function () {
     if (typeof window.__renderBootError === "function") return;
     window.__renderBootError = function renderBootError(payload) {
-      var title = String((payload && payload.title) || "页面加载失败");
-      var summary = String((payload && payload.summary) || "出现未知错误，请稍后重试。");
+      var title = String((payload && payload.title) || bt("error_title_page_load"));
+      var summary = String((payload && payload.summary) || bt("error_summary_unknown"));
       var details = Array.isArray(payload && payload.details)
         ? payload.details.filter(Boolean).map(String)
         : [];
@@ -140,7 +562,7 @@
           "margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);";
         var detailTitle = document.createElement("div");
         detailTitle.style.cssText = "font-weight:600;color:#ffd1d1;";
-        detailTitle.textContent = "错误详情";
+        detailTitle.textContent = bt("error_details_title");
         detailWrap.appendChild(detailTitle);
         var detailUl = document.createElement("ul");
         detailUl.style.cssText = "margin:8px 0 0 18px;padding:0;line-height:1.65;";
@@ -159,7 +581,7 @@
           "margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);";
         var suggestTitle = document.createElement("div");
         suggestTitle.style.cssText = "font-weight:600;color:#f2e5c9;";
-        suggestTitle.textContent = "建议处理";
+        suggestTitle.textContent = bt("error_suggestions_title");
         suggestWrap.appendChild(suggestTitle);
         var suggestOl = document.createElement("ol");
         suggestOl.style.cssText = "margin:8px 0 0 18px;padding:0;line-height:1.65;";
@@ -179,7 +601,7 @@
       retryButton.type = "button";
       retryButton.style.cssText =
         "cursor:pointer;border:1px solid rgba(77,214,201,0.45);border-radius:999px;padding:6px 14px;background:rgba(12,18,28,0.9);color:#c9fff7;";
-      retryButton.textContent = "重试加载";
+      retryButton.textContent = bt("action_retry");
       retryButton.addEventListener("click", function () {
         if (typeof window.__startBootstrapEntry === "function") {
           window.__startBootstrapEntry({ fromRetry: true });
@@ -193,7 +615,7 @@
       refreshButton.type = "button";
       refreshButton.style.cssText =
         "cursor:pointer;border:1px solid rgba(255,255,255,0.45);border-radius:999px;padding:6px 14px;background:rgba(12,18,28,0.9);color:#fff;";
-      refreshButton.textContent = "刷新页面";
+      refreshButton.textContent = bt("action_refresh");
       refreshButton.addEventListener("click", function () {
         window.location.reload();
       });
@@ -205,7 +627,7 @@
       feedbackLink.rel = "noreferrer";
       feedbackLink.style.cssText =
         "display:inline-flex;align-items:center;text-decoration:none;border:1px solid rgba(77,214,201,0.45);border-radius:999px;padding:6px 14px;background:rgba(12,18,28,0.85);color:#c9fff7;";
-      feedbackLink.textContent = "反馈问题";
+      feedbackLink.textContent = bt("action_feedback");
       actionRow.appendChild(feedbackLink);
 
       card.appendChild(actionRow);
@@ -219,32 +641,40 @@
     if (typeof window.__reportScriptChainMissing !== "function") {
       window.__reportScriptChainMissing = function reportScriptChainMissing() {
         window.__renderBootError({
-          title: "页面资源加载失败",
-          summary: "脚本加载清单缺失，应用暂时无法启动。",
+          title: bt("error_title_resource"),
+          summary: bt("error_summary_script_chain_missing"),
           details: [
-            "缺失资源清单：window.__APP_SCRIPT_CHAIN",
-            "请确认 ./js/app.script-chain.js 已成功部署且可访问",
+            bt("error_detail_missing_chain"),
+            bt("error_detail_confirm_chain"),
           ],
-          suggestions: ["点击“重试加载”重新请求关键资源", "按 Ctrl + F5 强制刷新后重试"],
+          suggestions: [bt("suggestion_retry"), bt("suggestion_hard_refresh")],
         });
       };
     }
     if (typeof window.__reportScriptLoadFailure !== "function") {
-      window.__reportScriptLoadFailure = function reportScriptLoadFailure(failedScript) {
+      window.__reportScriptLoadFailure = function reportScriptLoadFailure(failedScript, diagnostics) {
         var failed = String(failedScript || "").trim();
+        var status = diagnostics && diagnostics.status ? Number(diagnostics.status) : 0;
+        var onlineState = navigator.onLine ? bt("error_network_online") : bt("error_network_offline");
+        var details = [
+          bt("error_detail_failed_resource", { name: failed || bt("unknown_item") }),
+          bt("error_detail_network_state", { state: onlineState }),
+        ];
+        if (status) {
+          var hint = explainHttpStatus(status);
+          details.push(
+            bt("error_detail_http_status", {
+              status: status,
+              hint: hint ? " (" + hint + ")" : "",
+            })
+          );
+        }
+        details.push(bt("error_hint_flaky"));
         window.__renderBootError({
-          title: "页面资源加载失败",
-          summary: "核心脚本未能完整加载，应用暂时无法启动。",
-          details: [
-            failed ? "失败资源：" + failed : "失败资源：未知",
-            "网络状态：" + (navigator.onLine ? "在线" : "离线"),
-            "可能原因：网络波动、缓存损坏、CDN 同步延迟或拦截插件阻止脚本请求",
-          ],
-          suggestions: [
-            "点击“重试加载”重新请求关键资源",
-            "按 Ctrl + F5 强制刷新后重试",
-            "若问题持续，请在 GitHub Issues 附上控制台报错截图",
-          ],
+          title: bt("error_title_resource"),
+          summary: bt("error_summary_core_script"),
+          details: details,
+          suggestions: [bt("suggestion_retry"), bt("suggestion_hard_refresh"), bt("suggestion_issue_screenshot")],
         });
       };
     }
@@ -266,8 +696,13 @@
     applyPreloadTheme();
     ensureErrorRenderer();
     ensureLoadErrorReporter();
+    var progressPulseTimer = null;
 
     var finish = function () {
+      if (progressPulseTimer) {
+        clearInterval(progressPulseTimer);
+        progressPulseTimer = null;
+      }
       if (!root.classList.contains("preload")) return;
       root.classList.remove("preload");
       var overlay = document.getElementById("app-preload");
@@ -292,13 +727,77 @@
       );
     }
 
+    var ensurePreloadAssist = function () {
+      var refs = getPreloadRefs();
+      if (!refs.overlay) return;
+      var card = refs.overlay.querySelector(".preload-card");
+      if (!card) return;
+      if (!refs.help) {
+        var help = document.createElement("div");
+        help.className = "preload-sub preload-help";
+        help.style.cssText = "margin-top:8px;line-height:1.5;";
+        card.appendChild(help);
+      }
+      if (!refs.actions) {
+        var actionRow = document.createElement("div");
+        actionRow.className = "preload-actions";
+        actionRow.style.cssText =
+          "margin-top:10px;display:none;gap:8px;flex-wrap:wrap;justify-content:center;";
+
+        var retryButton = document.createElement("button");
+        retryButton.type = "button";
+        retryButton.textContent = bt("action_retry");
+        retryButton.style.cssText =
+          "cursor:pointer;border:1px solid rgba(77,214,201,0.45);border-radius:999px;padding:4px 10px;background:rgba(12,18,28,0.9);color:#c9fff7;font-size:12px;";
+        retryButton.addEventListener("click", function () {
+          if (typeof window.__startBootstrapEntry === "function") {
+            window.__startBootstrapEntry({ fromRetry: true });
+            return;
+          }
+          window.location.reload();
+        });
+        actionRow.appendChild(retryButton);
+
+        var refreshButton = document.createElement("button");
+        refreshButton.type = "button";
+        refreshButton.textContent = bt("action_refresh");
+        refreshButton.style.cssText =
+          "cursor:pointer;border:1px solid rgba(255,255,255,0.35);border-radius:999px;padding:4px 10px;background:rgba(12,18,28,0.9);color:#fff;font-size:12px;";
+        refreshButton.addEventListener("click", function () {
+          window.location.reload();
+        });
+        actionRow.appendChild(refreshButton);
+
+        var feedbackLink = document.createElement("a");
+        feedbackLink.href = "https://github.com/cmyyx/endfield-essence-planner/issues";
+        feedbackLink.target = "_blank";
+        feedbackLink.rel = "noreferrer";
+        feedbackLink.textContent = bt("action_feedback");
+        feedbackLink.style.cssText =
+          "display:inline-flex;align-items:center;text-decoration:none;border:1px solid rgba(77,214,201,0.4);border-radius:999px;padding:4px 10px;background:rgba(12,18,28,0.85);color:#c9fff7;font-size:12px;";
+        actionRow.appendChild(feedbackLink);
+
+        card.appendChild(actionRow);
+      }
+    };
+    ensurePreloadAssist();
+
     var toResourceLabel = function (src) {
       var value = String(src || "");
-      if (!value) return "未知资源";
+      if (!value) return bt("unknown_resource");
       if (/^https?:\/\//i.test(value)) return value;
       return value;
     };
     var resourceState = new Map();
+    var progressMeta = {
+      startedAt: Date.now(),
+      lastLoaded: -1,
+      lastLoadedAt: Date.now(),
+    };
+    var preloadAssistStallMs = 30000;
+    var preloadFailStallMs = 60000;
+    var preloadLongHelpStallMs = 45000;
+    var triggerStallTimeout = null;
     var ensureResource = function (src, kind) {
       var key = normalizeResourceKey(src);
       if (!resourceState.has(key)) {
@@ -308,12 +807,14 @@
           kind: kind || "resource",
           label: toResourceLabel(src),
           status: "pending",
+          statusAt: 0,
         });
       }
       return key;
     };
     var renderProgress = function () {
       if (runId !== runSerial) return;
+      ensurePreloadAssist();
       var refs = getPreloadRefs();
       if (!refs.overlay) return;
       var entries = Array.from(resourceState.values());
@@ -324,9 +825,42 @@
       var failedItem = entries.find(function (entry) {
         return entry.status === "failed";
       });
-      var loadingItem = entries.find(function (entry) {
+      var loadingItems = entries.filter(function (entry) {
         return entry.status === "loading";
       });
+      var loadingItem = loadingItems.length ? loadingItems[0] : null;
+      var loadingCount = loadingItems.length;
+      var loadingPreview =
+        loadingCount > 0
+          ? loadingItems
+              .slice(0, 3)
+              .map(function (entry) {
+                return entry.label;
+              })
+              .join(bt("list_sep"))
+          : "";
+      var recentLoadedPreview = entries
+        .filter(function (entry) {
+          return entry.status === "loaded" && entry.statusAt > 0;
+        })
+        .sort(function (a, b) {
+          return b.statusAt - a.statusAt;
+        })
+        .slice(0, 2)
+        .map(function (entry) {
+          return entry.label;
+        })
+        .join(bt("list_sep"));
+      if (loaded !== progressMeta.lastLoaded) {
+        progressMeta.lastLoaded = loaded;
+        progressMeta.lastLoadedAt = Date.now();
+      }
+      var stagnantMs = Date.now() - progressMeta.lastLoadedAt;
+      var shouldShowAssist =
+        !failedItem && loaded < total && stagnantMs >= preloadAssistStallMs;
+      var shouldForceTimeout =
+        !failedItem && loaded < total && stagnantMs >= preloadFailStallMs;
+      var hasStagingGap = !failedItem && !loadingItem && loaded < total;
       if (refs.count) {
         refs.count.textContent = loaded + "/" + total;
       }
@@ -337,31 +871,68 @@
       }
       if (refs.status) {
         if (failedItem) {
-          refs.status.textContent = "资源加载失败";
+          refs.status.textContent = bt("preload_status_failed");
         } else if (total === 0) {
-          refs.status.textContent = "正在准备资源…";
+          refs.status.textContent = bt("preload_status_prepare");
         } else if (loaded >= total) {
-          refs.status.textContent = "资源已就绪，正在初始化页面…";
+          refs.status.textContent = bt("preload_status_ready");
+        } else if (hasStagingGap) {
+          refs.status.textContent = bt("preload_status_staging");
+        } else if (loadingCount > 1) {
+          refs.status.textContent = bt("preload_status_parallel");
         } else {
-          refs.status.textContent = "正在加载资源…";
+          refs.status.textContent = bt("preload_status_loading");
         }
       }
       if (refs.current) {
         if (failedItem) {
-          refs.current.textContent = "失败项：" + failedItem.label;
+          refs.current.textContent = bt("preload_current_failed", { label: failedItem.label });
+        } else if (loadingCount > 1) {
+          var parallelText = bt("preload_current_parallel", {
+            labels: loadingPreview,
+            more:
+              loadingCount > 3
+                ? bt("preload_current_parallel_more", { count: loadingCount })
+                : "",
+          });
+          refs.current.textContent = recentLoadedPreview
+            ? parallelText + " | " + bt("preload_current_done", { labels: recentLoadedPreview })
+            : parallelText;
         } else if (loadingItem) {
-          refs.current.textContent = "当前：" + loadingItem.label;
+          refs.current.textContent = bt("preload_current_now", { label: loadingItem.label });
+        } else if (hasStagingGap) {
+          refs.current.textContent = recentLoadedPreview
+            ? bt("preload_current_wait_stage", { labels: recentLoadedPreview })
+            : bt("preload_current_wait_core");
         } else if (loaded >= total && total > 0) {
-          refs.current.textContent = "等待应用挂载完成…";
+          refs.current.textContent = bt("preload_current_wait_mount");
         } else {
           refs.current.textContent = "";
         }
+      }
+      if (refs.help) {
+        if (failedItem) {
+          refs.help.textContent = "";
+        } else if (loaded < total && stagnantMs >= preloadLongHelpStallMs) {
+          refs.help.textContent = bt("preload_help_long");
+        } else if (shouldShowAssist) {
+          refs.help.textContent = bt("preload_help_short");
+        } else {
+          refs.help.textContent = "";
+        }
+      }
+      if (refs.actions) {
+        refs.actions.style.display = shouldShowAssist ? "flex" : "none";
+      }
+      if (shouldForceTimeout && typeof triggerStallTimeout === "function") {
+        triggerStallTimeout();
       }
     };
     var setResourceStatus = function (key, status) {
       var item = resourceState.get(key);
       if (!item) return;
       item.status = status;
+      item.statusAt = Date.now();
       renderProgress();
     };
 
@@ -380,11 +951,20 @@
       document.addEventListener(
         "DOMContentLoaded",
         function () {
+          ensurePreloadAssist();
           renderProgress();
         },
         { once: true }
       );
     }
+    progressPulseTimer = setInterval(function () {
+      if (runId !== runSerial) {
+        clearInterval(progressPulseTimer);
+        progressPulseTimer = null;
+        return;
+      }
+      renderProgress();
+    }, 1000);
 
     var scriptLoadRegistry = new Map();
     var loadScript = function (src) {
@@ -414,7 +994,9 @@
         script.onerror = function () {
           setResourceStatus(key, "failed");
           scriptLoadRegistry.delete(key);
-          reject(new Error("Failed to load: " + src));
+          probeResourceStatus(src).then(function (probe) {
+            reject(createLoadError("script", src, "error", probe));
+          });
         };
         var target = document.body || document.head || document.documentElement;
         target.appendChild(script);
@@ -425,7 +1007,49 @@
     window.__loadScript = loadScript;
 
     var styleLoadRegistry = new Map();
-    var cssLoadTimeoutMs = 12000;
+    var resolveCssStallLimitMs = function () {
+      var base = 60000;
+      try {
+        var conn =
+          navigator && (navigator.connection || navigator.mozConnection || navigator.webkitConnection);
+        if (conn) {
+          if (conn.saveData) return 75000;
+          var type = String(conn.effectiveType || "").toLowerCase();
+          if (type === "slow-2g" || type === "2g") return 75000;
+          if (type === "3g") return 65000;
+        }
+      } catch (error) {
+        // ignore
+      }
+      return base;
+    };
+    var cssStallLimitMs = resolveCssStallLimitMs();
+    var cssStatePollIntervalMs = 900;
+    var cssProbeIntervalMs = 5000;
+    var isStylesheetReady = function (key, link) {
+      if (!link) return false;
+      try {
+        if (link.sheet && !link.disabled) {
+          return true;
+        }
+      } catch (error) {
+        // ignore cross-origin/parse errors and continue with fallback scan
+      }
+      try {
+        var sheets = Array.from(document.styleSheets || []);
+        return sheets.some(function (sheet) {
+          var href = "";
+          try {
+            href = sheet && sheet.href ? normalizeResourceKey(sheet.href) : "";
+          } catch (error) {
+            href = "";
+          }
+          return href === key;
+        });
+      } catch (error) {
+        return false;
+      }
+    };
     var loadStyle = function (href) {
       var key = ensureResource(href, "style");
       if (styleLoadRegistry.has(key)) {
@@ -433,6 +1057,10 @@
       }
       var task = new Promise(function (resolve, reject) {
         var settled = false;
+        var probeInFlight = false;
+        var lastProbe = null;
+        var errorSettleTimer = null;
+        var nextProbeAt = Date.now();
         var link = document.querySelector('link[rel="stylesheet"][href="' + href + '"]');
         if (!link) {
           link = document.createElement("link");
@@ -441,8 +1069,12 @@
           document.head.appendChild(link);
         }
         setResourceStatus(key, "loading");
+        var pollTimer = null;
+        var stallTimer = null;
         var cleanup = function () {
-          clearTimeout(timeoutId);
+          clearInterval(pollTimer);
+          clearTimeout(stallTimer);
+          clearTimeout(errorSettleTimer);
           link.removeEventListener("load", onLoad);
           link.removeEventListener("error", onError);
         };
@@ -456,28 +1088,95 @@
           setResourceStatus(key, "loaded");
           resolve();
         };
+        var onFailure = function (reason, probe) {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          setResourceStatus(key, "failed");
+          styleLoadRegistry.delete(key);
+          reject(createLoadError("style", href, reason, probe));
+        };
+        var runProbe = function (source) {
+          if (settled || probeInFlight) return;
+          probeInFlight = true;
+          probeResourceStatus(href)
+            .then(function (probe) {
+              if (settled) return;
+              lastProbe = probe || null;
+              if (isStylesheetReady(key, link)) {
+                onLoad();
+                return;
+              }
+              var status = probe && probe.status ? Number(probe.status) : 0;
+              if (status && isFatalHttpStatus(status)) {
+                onFailure("http", probe);
+                return;
+              }
+            })
+            .finally(function () {
+              probeInFlight = false;
+            });
+        };
+        var schedulePoll = function () {
+          clearInterval(pollTimer);
+          pollTimer = setInterval(function () {
+            if (settled) return;
+            if (isStylesheetReady(key, link)) {
+              onLoad();
+              return;
+            }
+            if (Date.now() >= nextProbeAt) {
+              nextProbeAt = Date.now() + cssProbeIntervalMs;
+              runProbe("poll");
+            }
+          }, cssStatePollIntervalMs);
+        };
+        var scheduleStallWatchdog = function () {
+          clearTimeout(stallTimer);
+          stallTimer = setTimeout(function () {
+            if (settled) return;
+            if (isStylesheetReady(key, link)) {
+              onLoad();
+              return;
+            }
+            probeResourceStatus(href).then(function (probe) {
+              if (settled) return;
+              if (isStylesheetReady(key, link)) {
+                onLoad();
+                return;
+              }
+              var status = probe && probe.status ? Number(probe.status) : 0;
+              if (status && isFatalHttpStatus(status)) {
+                onFailure("http", probe);
+                return;
+              }
+              onFailure("stalled", probe);
+            });
+          }, cssStallLimitMs);
+        };
+        schedulePoll();
+        scheduleStallWatchdog();
+        link.addEventListener("load", onLoad);
         var onError = function () {
           if (settled) return;
-          settled = true;
-          cleanup();
-          setResourceStatus(key, "failed");
-          styleLoadRegistry.delete(key);
-          reject(new Error("Failed to load stylesheet: " + href));
+          runProbe("error");
+          clearTimeout(errorSettleTimer);
+          errorSettleTimer = setTimeout(function () {
+            if (settled) return;
+            if (isStylesheetReady(key, link)) {
+              onLoad();
+              return;
+            }
+            onFailure("error", lastProbe);
+          }, 1600);
         };
-        var timeoutId = setTimeout(function () {
-          if (settled) return;
-          settled = true;
-          cleanup();
-          setResourceStatus(key, "failed");
-          styleLoadRegistry.delete(key);
-          reject(new Error("Failed to load stylesheet (timeout): " + href));
-        }, cssLoadTimeoutMs);
-        link.addEventListener("load", onLoad);
         link.addEventListener("error", onError);
         try {
-          if (link.sheet && !link.disabled) {
+          if (isStylesheetReady(key, link)) {
             onLoad();
+            return;
           }
+          runProbe("init");
         } catch (error) {
           // ignore and wait load/error
         }
@@ -495,14 +1194,54 @@
       loadScript("./data/i18n.zh-CN.js"),
     ]);
     var scriptChainPromise = loadScript("./js/app.script-chain.js");
-    var domReadyPromise =
-      document.readyState === "loading"
-        ? new Promise(function (resolve) {
-            document.addEventListener("DOMContentLoaded", resolve, { once: true });
-          })
-        : Promise.resolve();
-
-    Promise.all([domReadyPromise, cssPromise, vuePromise, dataPromise, scriptChainPromise])
+    if (typeof window.__loadAnalyticsNow === "function") {
+      try {
+        // Intentionally eager: capture real startup timing under first-screen contention.
+        window.__loadAnalyticsNow();
+      } catch (error) {
+        // ignore analytics bootstrap errors
+      }
+    }
+    var shellReadyPromise = new Promise(function (resolve) {
+      var guard = 0;
+      var check = function () {
+        if (ensureShell()) {
+          resolve();
+          return;
+        }
+        guard += 1;
+        if (guard >= 200) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 50);
+      };
+      check();
+    });
+    var stallTimeoutTriggered = false;
+    var stallTimeoutReject = null;
+    var stallTimeoutPromise = new Promise(function (resolve, reject) {
+      stallTimeoutReject = reject;
+    });
+    triggerStallTimeout = function () {
+      if (stallTimeoutTriggered || typeof stallTimeoutReject !== "function") return;
+      stallTimeoutTriggered = true;
+      var stallError = new Error("Bootstrap progress stalled");
+      stallError.resource = {
+        kind: "startup-stall",
+        src: "bootstrap",
+        reason: "stalled",
+        probe: null,
+      };
+      stallTimeoutReject(stallError);
+    };
+    var bootLoadPromise = Promise.all([
+      shellReadyPromise,
+      cssPromise,
+      vuePromise,
+      dataPromise,
+      scriptChainPromise,
+    ])
       .then(function () {
         if (
           !declaredAppScriptChain.length &&
@@ -516,35 +1255,90 @@
           renderProgress();
         }
         return loadScript("./js/app.js");
-      })
+      });
+    Promise.race([bootLoadPromise, stallTimeoutPromise])
       .catch(function (error) {
         if (runId !== runSerial) return;
         finish();
         var failedMessage = String((error && error.message) || "");
+        var resourceMeta = error && error.resource ? error.resource : null;
+        var probe = resourceMeta && resourceMeta.probe ? resourceMeta.probe : null;
+        var status = probe && probe.status ? Number(probe.status) : 0;
+        var statusHint = explainHttpStatus(status);
         var failedScript = failedMessage.replace(/^Failed to load:\s*/i, "");
-        var failedStyle = failedMessage
-          .replace(/^Failed to load stylesheet(?: \(timeout\))?:\s*/i, "")
-          .trim();
-        var isCssFailure = failedMessage.indexOf("stylesheet") !== -1;
-        if (isCssFailure) {
+        if (resourceMeta && resourceMeta.kind === "script" && resourceMeta.src) {
+          failedScript = resourceMeta.src;
+        }
+        if (resourceMeta && resourceMeta.kind === "startup-stall") {
           window.__renderBootError({
-            title: "页面样式加载失败",
-            summary: "关键样式文件未能完整加载，页面无法正常展示。",
-            details: [failedStyle ? "失败样式：" + failedStyle : "失败样式：未知"],
-            suggestions: ["点击“重试加载”重新请求关键资源", "按 Ctrl + F5 强制刷新后重试"],
+            title: bt("error_title_resource"),
+            summary: bt("error_summary_core_resource"),
+            details: [
+              bt("error_detail_failed_reason", { reason: bt("error_reason_stalled") }),
+              bt("error_hint_flaky"),
+            ],
+            suggestions: [bt("suggestion_retry"), bt("suggestion_hard_refresh"), bt("suggestion_issue_screenshot")],
+          });
+          return;
+        }
+        var failedStyle = failedMessage
+          .replace(/^Failed to load stylesheet(?: \([^)]+\))?:\s*/i, "")
+          .trim();
+        if (resourceMeta && resourceMeta.kind === "style" && resourceMeta.src) {
+          failedStyle = resourceMeta.src;
+        }
+        var failureReason = resourceMeta && resourceMeta.reason ? String(resourceMeta.reason) : "";
+        var isCssFailure =
+          (resourceMeta && resourceMeta.kind === "style") || failedMessage.indexOf("stylesheet") !== -1;
+        if (isCssFailure) {
+          var cssDetails = [bt("error_detail_failed_style", { name: failedStyle || bt("unknown_item") })];
+          if (status) {
+            cssDetails.push(
+              bt("error_detail_http_status", {
+                status: status,
+                hint: statusHint ? " (" + statusHint + ")" : "",
+              })
+            );
+          }
+          if (failureReason) {
+            cssDetails.push(
+              bt("error_detail_failed_reason", {
+                reason: describeStyleFailureReason(failureReason, status),
+              })
+            );
+          }
+          window.__renderBootError({
+            title: bt("error_title_style"),
+            summary: bt("error_summary_style"),
+            details: cssDetails,
+            suggestions: [bt("suggestion_retry"), bt("suggestion_hard_refresh")],
           });
         } else if (typeof window.__reportScriptLoadFailure === "function") {
-          window.__reportScriptLoadFailure(failedScript);
+          window.__reportScriptLoadFailure(failedScript, {
+            status: status,
+          });
         } else {
+          var scriptDetails = [
+            bt("error_detail_failed_resource", { name: failedScript || bt("unknown_item") }),
+          ];
+          if (status) {
+            scriptDetails.push(
+              bt("error_detail_http_status", {
+                status: status,
+                hint: statusHint ? " (" + statusHint + ")" : "",
+              })
+            );
+          }
           window.__renderBootError({
-            title: "页面资源加载失败",
-            summary: "核心资源未能完整加载，应用暂时无法启动。",
-            details: [failedScript ? "失败资源：" + failedScript : "失败资源：未知"],
-            suggestions: ["点击“重试加载”重新请求关键资源", "按 Ctrl + F5 强制刷新后重试"],
+            title: bt("error_title_resource"),
+            summary: bt("error_summary_core_resource"),
+            details: scriptDetails,
+            suggestions: [bt("suggestion_retry"), bt("suggestion_hard_refresh")],
           });
         }
       })
       .finally(function () {
+        stallTimeoutTriggered = true;
         if (runId === runSerial) {
           window.__bootstrapEntryRunning = false;
         }

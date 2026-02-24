@@ -128,6 +128,20 @@
       dungeons.map((dungeon) => getDungeonRegion(dungeon && dungeon.name)),
       (a, b) => a.localeCompare(b, "zh-Hans-CN")
     );
+    const isWeaponFarmableInCurrentVersion = (weapon) => {
+      if (!weapon || !weapon.s2 || !weapon.s3) return false;
+      return dungeons.some((dungeon) => {
+        const s2Pool = Array.isArray(dungeon && dungeon.s2_pool) ? dungeon.s2_pool : [];
+        const s3Pool = Array.isArray(dungeon && dungeon.s3_pool) ? dungeon.s3_pool : [];
+        return s2Pool.includes(weapon.s2) && s3Pool.includes(weapon.s3);
+      });
+    };
+    const farmableS1Pool = uniqueSorted(
+      weapons
+        .filter((weapon) => isWeaponFarmableInCurrentVersion(weapon))
+        .map((weapon) => weapon.s1),
+      (a, b) => getS1OrderIndex(a) - getS1OrderIndex(b)
+    );
 
     const recommendations = computed(() => {
       const targets = state.selectedWeapons.value;
@@ -204,8 +218,8 @@
             }
           });
           const baseOverflow = baseKeys.length > 3;
-          if (baseAutoPick.length < 3 && state.s1Options.value.length) {
-            const fillers = state.s1Options.value.filter((value) => !baseAutoPick.includes(value));
+          if (baseAutoPick.length < 3 && farmableS1Pool.length) {
+            const fillers = farmableS1Pool.filter((value) => !baseAutoPick.includes(value));
             baseAutoPick.push(...fillers.slice(0, 3 - baseAutoPick.length));
           }
           const baseAllLabels = baseSorted.slice();
