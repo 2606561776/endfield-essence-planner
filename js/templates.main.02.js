@@ -4,7 +4,7 @@
                 </div>
               </div>
               <div v-else class="empty">
-                {{ t("当前已启用“隐藏已排除武器”，且已选武器均被排除。请取消排除，或关闭该开关。") }}
+                {{ t("当前组合无可用方案") }}
               </div>
             </div>
           </div>
@@ -59,21 +59,21 @@
               <div class="card-header">
                 <div>
                   <div class="card-title">{{ tTerm("dungeon", card.dungeon.name) }}</div>
-                  <div class="hint" v-if="card.displaySelectedMatchCount === selectedWeapons.length">
-                    {{ t("附加属性池 / 技能属性池 均已满足所选武器需求") }}
+                  <div class="hint" v-if="card.displaySelectedMatchCount === card.targetCount">
+                    {{ t("附加属性池 / 技能属性池 均已满足已选武器需求") }}
                   </div>
                   <div class="hint" v-else>
                     {{
                       t("已覆盖 {match} / {total} 把已选武器，剩余需拆分刷取。", {
                         match: card.displaySelectedMatchCount,
-                        total: selectedWeapons.length,
+                        total: card.targetCount,
                       })
                     }}
                   </div>
                   <details
                     v-if="card.displaySelectedMissingNames.length && !card.baseOverflow"
                     class="missing-details"
-                    :open="selectedWeapons.length > 1"
+                    :open="card.targetCount > 1"
                   >
                     <summary>
                       {{ t("未覆盖") }} {{ card.displaySelectedMissingNames.length }} {{ t("把") }}（{{
@@ -189,10 +189,12 @@
                       class="scheme-weapon-item is-selected is-disabled"
                       v-memo="[
                         locale,
+                        localeRenderVersion,
                         weapon.conflictS2,
                         weapon.conflictS3,
                         weapon.conflictReason,
-                        isExcluded(weapon.name),
+                        weapon.isUnowned,
+                        weapon.isEssenceOwnedReal,
                         weapon.note,
                       ]"
                     >
@@ -222,7 +224,7 @@
                             @error="handleCharacterImageError"
                           />
                         </span>
-                        <span>{{ tTerm("weapon", weapon.name) }}</span>
+                        <span class="weapon-main-name">{{ tTerm("weapon", weapon.name) }}</span>
                         <span class="rarity" :style="rarityTextStyle(weapon.rarity)">
                           {{ weapon.rarity }}★
                         </span>
@@ -251,20 +253,28 @@
                       <div class="weapon-exclude-row" @click.stop>
                         <button
                           class="exclude-toggle small"
-                          :class="{ active: isExcluded(weapon.name) }"
-                          @click.stop="toggleExclude(weapon)"
+                          :class="{ active: weapon.isUnowned, 'intent-alert': !weapon.isUnowned }"
+                          @click.stop="toggleWeaponOwned(weapon)"
                         >
-                          {{ isExcluded(weapon.name) ? t("取消排除") : t("标记排除") }}
+                          {{ weapon.isUnowned ? t("标记武器拥有") : t("标记武器未有") }}
                         </button>
-                        <input
+                        <button
+                          class="exclude-toggle small"
+                          :class="{ active: weapon.isEssenceOwnedReal, 'intent-alert': !weapon.isEssenceOwnedReal }"
+                          @click.stop="toggleEssenceOwned(weapon)"
+                        >
+                          {{ weapon.isEssenceOwnedReal ? t("标记基质未有") : t("标记基质已有") }}
+                        </button>
+                        <textarea
                           class="exclude-note-input"
-                          :class="{ 'is-excluded': isExcluded(weapon.name) }"
-                          type="text"
+                          :class="{ 'is-essence-owned': weapon.isEssenceOwnedReal, 'is-unowned': weapon.isUnowned }"
+                          rows="1"
                           maxlength="30"
                           :placeholder="t('备注（可选）')"
                           :value="getWeaponNote(weapon.name)"
-                          @input="updateWeaponNote(weapon, $event.target.value)"
-                        />
+                          @focus="resizeNoteTextarea($event)"
+                          @input="resizeNoteTextarea($event); updateWeaponNote(weapon, $event.target.value)"
+                        ></textarea>
                       </div>
                     </div>
                   </div>
@@ -278,8 +288,11 @@
                   class="scheme-weapon-item"
                   v-memo="[
                     locale,
+                    localeRenderVersion,
                     weapon.isSelected,
-                    weapon.isExcluded,
+                    weapon.isEssenceOwned,
+                    weapon.isEssenceOwnedReal,
+                    weapon.isUnowned,
                     weapon.baseDim,
                     weapon.baseConflict,
                     weapon.baseLocked,
@@ -297,11 +310,12 @@
                     'base-selectable': card.baseOverflow,
                     'base-choice':
                       card.baseOverflow &&
-                      !weapon.isExcluded &&
+                      !weapon.isEssenceOwned &&
                       ((card.manualPickOverflow && weapon.baseLocked) ||
                         (!card.manualPickOverflow && card.manualPickNeeded && !weapon.baseLocked)),
-                    'is-dim': weapon.baseDim || weapon.isExcluded,
-                    'is-excluded': weapon.isExcluded,
+                    'is-dim': weapon.baseDim || weapon.isEssenceOwned,
+                    'is-unowned': weapon.isUnowned,
+                    'is-essence-owned': weapon.isEssenceOwned,
                     'tutorial-highlight':
                       tutorialActive &&
                       tutorialStepKey === 'base-pick' &&
@@ -335,12 +349,13 @@
                         @error="handleCharacterImageError"
                       />
                     </span>
-                    <span>{{ tTerm("weapon", weapon.name) }}</span>
+                    <span class="weapon-main-name">{{ tTerm("weapon", weapon.name) }}</span>
                     <span class="rarity" :style="rarityTextStyle(weapon.rarity)">
                       {{ weapon.rarity }}★
                     </span>
                     <span v-if="weapon.isSelected" class="badge">{{ t("已选") }}</span>
-                    <span v-if="weapon.isExcluded" class="badge muted">{{ t("排除") }}</span>
+                    <span v-if="weapon.isUnowned" class="badge muted">{{ t("未拥有") }}</span>
+                    <span v-if="weapon.isEssenceOwnedReal" class="badge muted">{{ t("基质已有") }}</span>
                     <span v-if="weapon.short" class="weapon-short">
                       {{ tTerm("short", weapon.short) }}
                     </span>
@@ -365,20 +380,28 @@
                   <div class="weapon-exclude-row" @click.stop>
                     <button
                       class="exclude-toggle small"
-                      :class="{ active: weapon.isExcluded }"
-                      @click.stop="toggleExclude(weapon)"
+                      :class="{ active: weapon.isUnowned, 'intent-alert': !weapon.isUnowned }"
+                      @click.stop="toggleWeaponOwned(weapon)"
                     >
-                      {{ weapon.isExcluded ? t("取消排除") : t("标记排除") }}
+                      {{ weapon.isUnowned ? t("标记武器拥有") : t("标记武器未有") }}
                     </button>
-                    <input
+                    <button
+                      class="exclude-toggle small"
+                      :class="{ active: weapon.isEssenceOwnedReal, 'intent-alert': !weapon.isEssenceOwnedReal }"
+                      @click.stop="toggleEssenceOwned(weapon)"
+                    >
+                      {{ weapon.isEssenceOwnedReal ? t("标记基质未有") : t("标记基质已有") }}
+                    </button>
+                    <textarea
                       class="exclude-note-input"
-                      :class="{ 'is-excluded': weapon.isExcluded }"
-                      type="text"
+                      :class="{ 'is-essence-owned': weapon.isEssenceOwnedReal, 'is-unowned': weapon.isUnowned }"
+                      rows="1"
                       maxlength="30"
                       :placeholder="t('备注（可选）')"
                       :value="getWeaponNote(weapon.name)"
-                      @input="updateWeaponNote(weapon, $event.target.value)"
-                    />
+                      @focus="resizeNoteTextarea($event)"
+                      @input="resizeNoteTextarea($event); updateWeaponNote(weapon, $event.target.value)"
+                    ></textarea>
                   </div>
                 </div>
               </div>

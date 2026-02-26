@@ -5,6 +5,7 @@
     const { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } = ctx;
 
     const weaponMap = new Map(weapons.map((weapon) => [weapon.name, weapon]));
+
     const uniqueSorted = (items, sorter) => {
       const values = Array.from(new Set(items.filter(Boolean)));
       if (sorter) {
@@ -13,119 +14,46 @@
       return values;
     };
 
-    const matchesSearchQuery = (weapon, query, searchIndex) => {
-      if (!query) return true;
-      return (searchIndex.get(weapon.name) || "").includes(query);
+    const getWeaponMark = (name) => getWeaponMarkFromMap(name, state.weaponMarks.value);
+    const normalizeMarkForStore = (mark) => compactWeaponMark(mark);
+
+    const setWeaponMark = (name, patch) => {
+      if (!name) return;
+      const current = getWeaponMark(name);
+      const next = { ...current, ...patch };
+      const normalized = normalizeMarkForStore(next);
+      const updated = { ...(state.weaponMarks.value || {}) };
+      if (!normalized) {
+        delete updated[name];
+      } else {
+        updated[name] = normalized;
+      }
+      state.weaponMarks.value = updated;
     };
 
-    const matchesCrossGroupFilters = (weapon, group) => {
-      if (group !== "s1" && state.filterS1.value.length && !state.filterS1.value.includes(weapon.s1)) {
-        return false;
-      }
-      if (group !== "s2" && state.filterS2.value.length && !state.filterS2.value.includes(weapon.s2)) {
-        return false;
-      }
-      if (group !== "s3" && state.filterS3.value.length && !state.filterS3.value.includes(weapon.s3)) {
-        return false;
-      }
-      return true;
-    };
-
-    const buildFilterOptionEntry = (group, value, query, searchIndex, hideFourStarWeapons) => {
-      const list = Array.isArray(state.baseSortedWeapons) && state.baseSortedWeapons.length
-        ? state.baseSortedWeapons
-        : weapons;
-      let fullCount = 0;
-      let effectiveCount = 0;
-      for (let i = 0; i < list.length; i += 1) {
-        const weapon = list[i];
-        if (!matchesSearchQuery(weapon, query, searchIndex)) continue;
-        if (!matchesCrossGroupFilters(weapon, group)) continue;
-        if (weapon[group] !== value) continue;
-        fullCount += 1;
-        if (!(hideFourStarWeapons && weapon.rarity === 4)) {
-          effectiveCount += 1;
-        }
-      }
-      const isEmpty = fullCount === 0;
-      const isOnlyFourStarHidden = !isEmpty && effectiveCount === 0 && hideFourStarWeapons;
-      return {
-        value,
-        count: effectiveCount,
-        fullCount,
-        effectiveCount,
-        isEmpty,
-        isOnlyFourStarHidden,
-        isDisabled: effectiveCount === 0,
-      };
-    };
-
-    const s1Options = computed(() => {
-      const query = normalizeText(state.searchQuery.value);
-      const searchIndex = state.weaponSearchIndex.value;
-      const hideFourStarWeapons = Boolean(
-        state.recommendationConfig.value && state.recommendationConfig.value.hideFourStarWeapons
-      );
-      const values = uniqueSorted(weapons.map((weapon) => weapon.s1), (a, b) => {
-        return getS1OrderIndex(a) - getS1OrderIndex(b);
-      });
-      return values.map((value) =>
-        buildFilterOptionEntry("s1", value, query, searchIndex, hideFourStarWeapons)
-      );
-    });
-
-    const s2Options = computed(() => {
-      const query = normalizeText(state.searchQuery.value);
-      const searchIndex = state.weaponSearchIndex.value;
-      const hideFourStarWeapons = Boolean(
-        state.recommendationConfig.value && state.recommendationConfig.value.hideFourStarWeapons
-      );
-      const values = uniqueSorted(weapons.map((weapon) => weapon.s2), (a, b) => {
-        return a.localeCompare(b, "zh-Hans-CN");
-      });
-      return values.map((value) =>
-        buildFilterOptionEntry("s2", value, query, searchIndex, hideFourStarWeapons)
-      );
-    });
-
-    const s3OptionEntries = computed(() => {
-      const query = normalizeText(state.searchQuery.value);
-      const searchIndex = state.weaponSearchIndex.value;
-      const hideFourStarWeapons = Boolean(
-        state.recommendationConfig.value && state.recommendationConfig.value.hideFourStarWeapons
-      );
-      const weaponValues = weapons.map((weapon) => weapon.s3).filter(Boolean);
-      const dungeonValues = dungeons.reduce((acc, dungeon) => {
-        if (Array.isArray(dungeon.s3_pool)) {
-          acc.push(...dungeon.s3_pool);
-        }
-        return acc;
-      }, []);
-      const values = uniqueSorted(
-        [...weaponValues, ...dungeonValues],
-        (a, b) => a.localeCompare(b, "zh-Hans-CN")
-      );
-      return values.map((value) =>
-        buildFilterOptionEntry("s3", value, query, searchIndex, hideFourStarWeapons)
-      );
-    });
-
-    const excludedNameSet = computed(() => {
-      const names = Object.keys(state.weaponMarks.value || {});
-      const excluded = names.filter(
-        (name) => state.weaponMarks.value[name] && state.weaponMarks.value[name].excluded
-      );
-      return new Set(excluded);
-    });
-
-    const getWeaponMark = (name) =>
-      state.weaponMarks.value && state.weaponMarks.value[name]
-        ? state.weaponMarks.value[name]
-        : { excluded: false, note: "" };
-
-    const isExcluded = (name) => Boolean(getWeaponMark(name).excluded);
-
+    const isWeaponOwned = (name) => Boolean(getWeaponMark(name).weaponOwned);
+    const isEssenceOwned = (name) => Boolean(getWeaponMark(name).essenceOwned);
+    const isExcluded = isEssenceOwned;
+    const isUnowned = (name) => !isWeaponOwned(name);
     const getWeaponNote = (name) => getWeaponMark(name).note || "";
+
+    const weaponOwnedNameSet = computed(() => {
+      const names = Object.keys(state.weaponMarks.value || {});
+      const values = names.filter((name) => isWeaponOwned(name));
+      return new Set(values);
+    });
+
+    const markedButUnownedNameSet = computed(() => {
+      const names = Object.keys(state.weaponMarks.value || {});
+      const values = names.filter((name) => !isWeaponOwned(name));
+      return new Set(values);
+    });
+
+    const essenceOwnedNameSet = computed(() => {
+      const names = Object.keys(state.weaponMarks.value || {});
+      const values = names.filter((name) => isEssenceOwned(name));
+      return new Set(values);
+    });
 
     const defaultTrackEvent = (name, data) => {
       if (typeof window === "undefined") return;
@@ -134,6 +62,41 @@
       }
     };
     const trackEvent = typeof state.trackEvent === "function" ? state.trackEvent : defaultTrackEvent;
+
+    const setWeaponOwned = (weapon, owned) => {
+      if (!weapon || !weapon.name) return;
+      const nextOwned = Boolean(owned);
+      setWeaponMark(weapon.name, { weaponOwned: nextOwned });
+      trackEvent(nextOwned ? "weapon_mark_owned" : "weapon_mark_unowned", { weapon: weapon.name });
+    };
+
+    const toggleWeaponOwned = (weapon) => {
+      if (!weapon || !weapon.name) return;
+      const current = getWeaponMark(weapon.name);
+      setWeaponOwned(weapon, !current.weaponOwned);
+    };
+
+    const setEssenceOwned = (weapon, owned) => {
+      if (!weapon || !weapon.name) return;
+      const nextOwned = Boolean(owned);
+      setWeaponMark(weapon.name, { essenceOwned: nextOwned });
+      trackEvent(nextOwned ? "weapon_mark_essence_owned" : "weapon_mark_essence_pending", {
+        weapon: weapon.name,
+      });
+    };
+
+    const toggleEssenceOwned = (weapon) => {
+      if (!weapon || !weapon.name) return;
+      const current = getWeaponMark(weapon.name);
+      setEssenceOwned(weapon, !current.essenceOwned);
+    };
+
+    const toggleExclude = toggleEssenceOwned;
+
+    const updateWeaponNote = (weapon, value) => {
+      if (!weapon || !weapon.name) return;
+      setWeaponMark(weapon.name, { note: value || "" });
+    };
 
     const readAttrHintSeen = () => {
       try {
@@ -161,38 +124,154 @@
       state.showAttrHint.value = true;
     }
 
-    const toggleExclude = (weapon) => {
-      if (!weapon || !weapon.name) return;
-      const current = getWeaponMark(weapon.name);
-      const nextExcluded = !current.excluded;
-      const next = { ...current, excluded: nextExcluded };
-      const updated = { ...state.weaponMarks.value };
-      if (!next.excluded && !next.note) {
-        delete updated[weapon.name];
-      } else {
-        updated[weapon.name] = next;
-      }
-      state.weaponMarks.value = updated;
+    const hasAttributeFilterSelection = () =>
+      Boolean(state.filterS1.value.length || state.filterS2.value.length || state.filterS3.value.length);
 
-      if (nextExcluded) {
-        trackEvent("weapon_exclude", { weapon: weapon.name });
-      } else {
-        trackEvent("weapon_unexclude", { weapon: weapon.name });
-      }
+    const getSelectorHiddenFlags = (weapon, config) => {
+      const weaponOwned = isWeaponOwned(weapon.name);
+      const essenceOwned = isEssenceOwned(weapon.name);
+      const hiddenByUnowned =
+        Boolean(config.hideUnownedWeapons && config.hideUnownedWeaponsInSelector) &&
+        !weaponOwned;
+      const hiddenByEssenceOwned =
+        Boolean(config.hideEssenceOwnedWeapons && config.hideEssenceOwnedWeaponsInSelector) &&
+        essenceOwned &&
+        (!config.hideEssenceOwnedOwnedOnly || weaponOwned);
+      const hiddenByFourStar =
+        Boolean(config.hideFourStarWeapons && config.hideFourStarWeaponsInSelector) &&
+        weapon.rarity === 4;
+      return {
+        hiddenByUnowned,
+        hiddenByEssenceOwned,
+        hiddenByFourStar,
+        hidden: hiddenByUnowned || hiddenByEssenceOwned || hiddenByFourStar,
+      };
     };
 
-    const updateWeaponNote = (weapon, value) => {
-      if (!weapon || !weapon.name) return;
-      const current = getWeaponMark(weapon.name);
-      const next = { ...current, note: value || "" };
-      const updated = { ...state.weaponMarks.value };
-      if (!next.excluded && !next.note) {
-        delete updated[weapon.name];
-      } else {
-        updated[weapon.name] = next;
-      }
-      state.weaponMarks.value = updated;
+    const shouldHideInSelector = (weapon, config) => {
+      const flags = getSelectorHiddenFlags(weapon, config);
+      if (!flags.hidden) return false;
+      if (config.attributeFilterAffectsHiddenWeapons) return true;
+      return !hasAttributeFilterSelection();
     };
+
+    const getSelectorHiddenReason = (weapon) => {
+      if (!weapon) return "";
+      const config = state.recommendationConfig.value || {};
+      const flags = getSelectorHiddenFlags(weapon, config);
+      if (!shouldHideInSelector(weapon, config)) return "";
+      const t = typeof state.t === "function" ? state.t : (value) => value;
+      const reasons = [];
+      if (flags.hiddenByUnowned) reasons.push(t("未拥有"));
+      if (flags.hiddenByEssenceOwned) reasons.push(t("基质已有"));
+      if (flags.hiddenByFourStar) reasons.push(t("四星"));
+      if (!reasons.length) return "";
+      return t("已隐藏：{reasons}", { reasons: reasons.join(" / ") });
+    };
+
+    const matchesSearchQuery = (weapon, query, searchIndex) => {
+      if (!query) return true;
+      return (searchIndex.get(weapon.name) || "").includes(query);
+    };
+
+    const matchesCrossGroupFilters = (weapon, group) => {
+      if (group !== "s1" && state.filterS1.value.length && !state.filterS1.value.includes(weapon.s1)) {
+        return false;
+      }
+      if (group !== "s2" && state.filterS2.value.length && !state.filterS2.value.includes(weapon.s2)) {
+        return false;
+      }
+      if (group !== "s3" && state.filterS3.value.length && !state.filterS3.value.includes(weapon.s3)) {
+        return false;
+      }
+      return true;
+    };
+
+    const buildFilterOptionEntry = (group, value, query, searchIndex, config) => {
+      const list = Array.isArray(state.baseSortedWeapons) && state.baseSortedWeapons.length
+        ? state.baseSortedWeapons
+        : weapons;
+      const affectsHidden = Boolean(config.attributeFilterAffectsHiddenWeapons);
+      let fullCount = 0;
+      let effectiveCount = 0;
+      for (let i = 0; i < list.length; i += 1) {
+        const weapon = list[i];
+        if (!matchesSearchQuery(weapon, query, searchIndex)) continue;
+        if (!matchesCrossGroupFilters(weapon, group)) continue;
+        if (weapon[group] !== value) continue;
+        fullCount += 1;
+        if (!getSelectorHiddenFlags(weapon, config).hidden) {
+          effectiveCount += 1;
+        }
+      }
+      const isEmpty = fullCount === 0;
+      const count = affectsHidden ? effectiveCount : fullCount;
+      const affectsNotOwned = Boolean(config.hideUnownedWeapons && config.hideUnownedWeaponsInSelector);
+      const affectsEssenceOwned = Boolean(
+        config.hideEssenceOwnedWeapons && config.hideEssenceOwnedWeaponsInSelector
+      );
+      const affectsFourStar = Boolean(config.hideFourStarWeapons && config.hideFourStarWeaponsInSelector);
+      const isOnlyFourStarHidden =
+        affectsHidden &&
+        !isEmpty &&
+        effectiveCount === 0 &&
+        affectsFourStar &&
+        !affectsNotOwned &&
+        !affectsEssenceOwned;
+      return {
+        value,
+        count,
+        fullCount,
+        effectiveCount,
+        isEmpty,
+        isOnlyFourStarHidden,
+        isDisabled: count === 0,
+      };
+    };
+
+    const s1Options = computed(() => {
+      const query = normalizeText(state.searchQuery.value);
+      const searchIndex = state.weaponSearchIndex.value;
+      const config = state.recommendationConfig.value || {};
+      const values = uniqueSorted(weapons.map((weapon) => weapon.s1), (a, b) => {
+        return getS1OrderIndex(a) - getS1OrderIndex(b);
+      });
+      return values.map((value) =>
+        buildFilterOptionEntry("s1", value, query, searchIndex, config)
+      );
+    });
+
+    const s2Options = computed(() => {
+      const query = normalizeText(state.searchQuery.value);
+      const searchIndex = state.weaponSearchIndex.value;
+      const config = state.recommendationConfig.value || {};
+      const values = uniqueSorted(weapons.map((weapon) => weapon.s2), (a, b) => {
+        return a.localeCompare(b, "zh-Hans-CN");
+      });
+      return values.map((value) =>
+        buildFilterOptionEntry("s2", value, query, searchIndex, config)
+      );
+    });
+
+    const s3OptionEntries = computed(() => {
+      const query = normalizeText(state.searchQuery.value);
+      const searchIndex = state.weaponSearchIndex.value;
+      const config = state.recommendationConfig.value || {};
+      const weaponValues = weapons.map((weapon) => weapon.s3).filter(Boolean);
+      const dungeonValues = dungeons.reduce((acc, dungeon) => {
+        if (Array.isArray(dungeon.s3_pool)) {
+          acc.push(...dungeon.s3_pool);
+        }
+        return acc;
+      }, []);
+      const values = uniqueSorted(
+        [...weaponValues, ...dungeonValues],
+        (a, b) => a.localeCompare(b, "zh-Hans-CN")
+      );
+      return values.map((value) =>
+        buildFilterOptionEntry("s3", value, query, searchIndex, config)
+      );
+    });
 
     const selectedWeaponRows = computed(() =>
       state.selectedNames.value
@@ -200,18 +279,25 @@
         .filter(Boolean)
         .map((weapon) => ({
           ...weapon,
-          isExcluded: isExcluded(weapon.name),
+          isWeaponOwned: isWeaponOwned(weapon.name),
+          isUnowned: isUnowned(weapon.name),
+          isEssenceOwned: isEssenceOwned(weapon.name),
+          isExcluded: isEssenceOwned(weapon.name),
           note: getWeaponNote(weapon.name),
         }))
     );
 
-    const selectedWeapons = computed(() => {
-      const rows = selectedWeaponRows.value;
-      const active = rows.filter((weapon) => !weapon.isExcluded);
-      if (!active.length && rows.length === 1) return rows;
-      return active;
-    });
+    const isEssenceOwnedForPlanning = (name) => isEssenceOwned(name);
+    const isWeaponOwnedForRecommendation = (name) => isWeaponOwned(name);
+    const isEssenceOwnedForRecommendation = (name) => isEssenceOwnedForPlanning(name);
 
+    const pendingSelectedWeapons = computed(() =>
+      selectedWeaponRows.value.filter((weapon) => !isEssenceOwnedForPlanning(weapon.name))
+    );
+
+    const selectedWeapons = computed(() => selectedWeaponRows.value);
+    const selectedCount = computed(() => state.selectedNames.value.length);
+    const pendingCount = computed(() => pendingSelectedWeapons.value.length);
     const selectedNameSet = computed(() => new Set(state.selectedNames.value));
 
     const toggleWeapon = (weapon, source = "grid") => {
@@ -235,6 +321,13 @@
       state.showWeaponAttrs.value = !state.showWeaponAttrs.value;
       if (state.showWeaponAttrs.value) {
         dismissAttrHint();
+      }
+    };
+
+    const toggleFilterPanel = () => {
+      state.showFilterPanel.value = !state.showFilterPanel.value;
+      if (state.filterPanelManuallySet && state.filterPanelManuallySet.value !== true) {
+        state.filterPanelManuallySet.value = true;
       }
     };
 
@@ -270,12 +363,39 @@
       return state.baseSortedWeapons.filter((weapon) => {
         const matchQuery = !query || (searchIndex.get(weapon.name) || "").includes(query);
         if (!matchQuery) return false;
-        if (config.hideFourStarWeapons && weapon.rarity === 4) return false;
         if (state.filterS1.value.length && !state.filterS1.value.includes(weapon.s1)) return false;
         if (state.filterS2.value.length && !state.filterS2.value.includes(weapon.s2)) return false;
         if (state.filterS3.value.length && !state.filterS3.value.includes(weapon.s3)) return false;
+        if (shouldHideInSelector(weapon, config)) return false;
         return true;
       });
+    });
+
+    const hiddenInSelectorSummary = computed(() => {
+      const query = normalizeText(state.searchQuery.value);
+      const searchIndex = state.weaponSearchIndex.value;
+      const config = state.recommendationConfig.value || {};
+      const list = Array.isArray(state.baseSortedWeapons) && state.baseSortedWeapons.length
+        ? state.baseSortedWeapons
+        : weapons;
+      let total = 0;
+      let unowned = 0;
+      let essenceOwned = 0;
+      let fourStar = 0;
+      list.forEach((weapon) => {
+        if (!matchesSearchQuery(weapon, query, searchIndex)) return;
+        if (state.filterS1.value.length && !state.filterS1.value.includes(weapon.s1)) return;
+        if (state.filterS2.value.length && !state.filterS2.value.includes(weapon.s2)) return;
+        if (state.filterS3.value.length && !state.filterS3.value.includes(weapon.s3)) return;
+        const flags = getSelectorHiddenFlags(weapon, config);
+        const isHidden = shouldHideInSelector(weapon, config);
+        if (!isHidden) return;
+        total += 1;
+        if (flags.hiddenByUnowned) unowned += 1;
+        if (flags.hiddenByEssenceOwned) essenceOwned += 1;
+        if (flags.hiddenByFourStar) fourStar += 1;
+      });
+      return { total, unowned, essenceOwned, fourStar };
     });
 
     const weaponGridVirtual = ref({
@@ -312,8 +432,19 @@
       }
 
       const showingAttrs = Boolean(state.showWeaponAttrs.value);
-      const containerSelector = showingAttrs ? ".weapon-attr-list" : ".weapon-list";
-      const itemSelector = showingAttrs ? ".weapon-attr-item" : ".weapon-item";
+      if (showingAttrs) {
+        weaponGridVirtual.value = {
+          ...weaponGridVirtual.value,
+          startIndex: 0,
+          endIndex: list.length,
+          columns: 1,
+        };
+        state.weaponGridTopSpacer.value = 0;
+        state.weaponGridBottomSpacer.value = 0;
+        return;
+      }
+      const containerSelector = ".weapon-list";
+      const itemSelector = ".weapon-item";
       const grid = document.querySelector(containerSelector);
       if (!grid) {
         weaponGridVirtual.value = {
@@ -326,19 +457,16 @@
         return;
       }
 
-      const anchor = showingAttrs ? grid.querySelector(".weapon-attr-anchor") || grid : grid;
+      const anchor = grid;
       const styles = window.getComputedStyle(grid);
       const gap = parseFloat(styles.rowGap || styles.gap || "8") || 8;
       const sampleCard = grid.querySelector(itemSelector);
-      const fallbackHeight = showingAttrs ? 86 : 148;
+      const fallbackHeight = 148;
       const sampleHeight = sampleCard ? sampleCard.getBoundingClientRect().height : fallbackHeight;
       const rowHeight = Math.max(1, sampleHeight + gap);
 
-      let columns = 1;
-      if (!showingAttrs) {
-        const tracks = (styles.gridTemplateColumns || "").split(" ").filter(Boolean);
-        columns = Math.max(1, tracks.length || 1);
-      }
+      const tracks = (styles.gridTemplateColumns || "").split(" ").filter(Boolean);
+      const columns = Math.max(1, tracks.length || 1);
       const totalRows = Math.ceil(list.length / columns);
 
       const viewportHeight =
@@ -422,7 +550,6 @@
       scheduleWeaponGridWindow,
       { immediate: true }
     );
-
     onMounted(() => {
       if (typeof window === "undefined") return;
       window.addEventListener("scroll", scheduleWeaponGridWindow, { passive: true });
@@ -439,22 +566,41 @@
     state.s1Options = s1Options;
     state.s2Options = s2Options;
     state.s3OptionEntries = s3OptionEntries;
-    state.excludedNameSet = excludedNameSet;
+    state.weaponOwnedNameSet = weaponOwnedNameSet;
+    state.markedButUnownedNameSet = markedButUnownedNameSet;
+    state.essenceOwnedNameSet = essenceOwnedNameSet;
+    state.getWeaponMark = getWeaponMark;
     state.getWeaponNote = getWeaponNote;
+    state.isWeaponOwned = isWeaponOwned;
+    state.isUnowned = isUnowned;
+    state.isEssenceOwned = isEssenceOwned;
+    state.isWeaponOwnedForRecommendation = isWeaponOwnedForRecommendation;
+    state.isEssenceOwnedForRecommendation = isEssenceOwnedForRecommendation;
     state.isExcluded = isExcluded;
+    state.setWeaponOwned = setWeaponOwned;
+    state.setEssenceOwned = setEssenceOwned;
+    state.toggleWeaponOwned = toggleWeaponOwned;
+    state.toggleEssenceOwned = toggleEssenceOwned;
     state.toggleExclude = toggleExclude;
     state.updateWeaponNote = updateWeaponNote;
     state.selectedWeaponRows = selectedWeaponRows;
+    state.pendingSelectedWeapons = pendingSelectedWeapons;
     state.selectedWeapons = selectedWeapons;
+    state.selectedCount = selectedCount;
+    state.pendingCount = pendingCount;
     state.selectedNameSet = selectedNameSet;
+    state.isEssenceOwnedForPlanning = isEssenceOwnedForPlanning;
     state.toggleWeapon = toggleWeapon;
     state.toggleShowWeaponAttrs = toggleShowWeaponAttrs;
+    state.toggleFilterPanel = toggleFilterPanel;
     state.clearSelection = clearSelection;
     state.toggleFilterValue = toggleFilterValue;
     state.clearAttributeFilters = clearAttributeFilters;
     state.hasAttributeFilters = hasAttributeFilters;
     state.filteredWeapons = filteredWeapons;
     state.visibleFilteredWeapons = visibleFilteredWeapons;
+    state.hiddenInSelectorSummary = hiddenInSelectorSummary;
+    state.getSelectorHiddenReason = getSelectorHiddenReason;
     state.allFilteredSelected = allFilteredSelected;
     state.selectAllWeapons = selectAllWeapons;
     state.trackEvent = trackEvent;

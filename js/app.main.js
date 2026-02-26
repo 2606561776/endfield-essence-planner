@@ -33,7 +33,7 @@
       title: "数据文件缺失",
       summary: "核心数据未加载完成，当前无法生成武器规划。",
       details: [
-        `地牢数据：${dungeons.length ? "已加载" : "缺失"}`,
+        `副本数据：${dungeons.length ? "已加载" : "缺失"}`,
         `武器数据：${weapons.length ? "已加载" : "缺失"}`,
         "请确认 ./data/dungeons.js 与 ./data/weapons.js 可访问",
       ],
@@ -194,10 +194,37 @@
       showPlanConfig: { type: Boolean, required: true },
       showPlanConfigHintDot: { type: Boolean, required: true },
       regionOptions: { type: Array, required: true },
-      tPlanPriorityModeOptions: { type: Array, required: true },
+      tRegionPriorityModeOptions: { type: Array, required: true },
+      tOwnershipPriorityModeOptions: { type: Array, required: true },
+      tStrictPriorityOrderOptions: { type: Array, required: true },
+      tTerm: { type: Function, required: true },
     },
     emits: ["toggle"],
     template: planConfigTemplate,
+  };
+
+  const matchStatusLine = {
+    props: {
+      weaponName: { type: String, required: true },
+      t: { type: Function, required: true },
+      isWeaponOwned: { type: Function, required: true },
+      isEssenceOwned: { type: Function, required: true },
+    },
+    template: `
+<div class="match-status-line">
+  <span
+    class="match-status-chip"
+    :class="{ 'is-owned': isWeaponOwned(weaponName), 'is-unowned': !isWeaponOwned(weaponName) }"
+  >
+    {{ isWeaponOwned(weaponName) ? t("已拥有") : t("未拥有") }}
+  </span>
+  <span
+    class="match-status-chip"
+    :class="{ 'is-essence-owned': isEssenceOwned(weaponName) }"
+  >
+    {{ isEssenceOwned(weaponName) ? t("基质已有") : t("基质未有") }}
+  </span>
+</div>`,
   };
 
   const app = createApp({
@@ -220,6 +247,7 @@
       init("initSearch");
       init("initUi");
       init("initStorage");
+      init("initMigration");
       init("initAnalytics");
       init("initEmbed");
       init("initPerf");
@@ -353,6 +381,24 @@
         });
       };
 
+      const resizeNoteTextarea = (event) => {
+        const target = event && event.target ? event.target : null;
+        if (!target || typeof target.tagName !== "string" || target.tagName.toLowerCase() !== "textarea") {
+          return;
+        }
+        const computedStyle =
+          typeof window !== "undefined" && typeof window.getComputedStyle === "function"
+            ? window.getComputedStyle(target)
+            : null;
+        const minHeight = Math.max(24, computedStyle ? parseFloat(computedStyle.minHeight || "0") : 0);
+        target.style.height = "auto";
+        const maxHeight = 96;
+        const contentHeight = target.scrollHeight;
+        const nextHeight = Math.max(minHeight, Math.min(contentHeight || 0, maxHeight));
+        target.style.height = `${nextHeight}px`;
+        target.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
+      };
+
       const syncQuery = (replace = false) => {
         if (typeof window === "undefined") return;
         if (applyingRoute) return;
@@ -410,16 +456,25 @@
         setLocale: state.setLocale,
         t: state.t,
         tTerm: state.tTerm,
-        tPlanPriorityMode: state.tPlanPriorityMode,
-        tPlanPriorityModeOptions: state.tPlanPriorityModeOptions,
+        localeRenderVersion: state.localeRenderVersion,
+        tRegionPriorityModeOptions: state.tRegionPriorityModeOptions,
+        tOwnershipPriorityModeOptions: state.tOwnershipPriorityModeOptions,
+        tStrictPriorityOrderOptions: state.tStrictPriorityOrderOptions,
         showAiNotice: state.showAiNotice,
         searchQuery: state.searchQuery,
         selectedNames: state.selectedNames,
+        selectedCount: state.selectedCount,
+        pendingCount: state.pendingCount,
         selectedWeaponRows: state.selectedWeaponRows,
+        pendingSelectedWeapons: state.pendingSelectedWeapons,
         selectedWeapons: state.selectedWeapons,
         selectedNameSet: state.selectedNameSet,
-        isExcluded: state.isExcluded,
-        toggleExclude: state.toggleExclude,
+        isWeaponOwned: state.isWeaponOwned,
+        isUnowned: state.isUnowned,
+        isEssenceOwned: state.isEssenceOwned,
+        isEssenceOwnedForPlanning: state.isEssenceOwnedForPlanning,
+        toggleWeaponOwned: state.toggleWeaponOwned,
+        toggleEssenceOwned: state.toggleEssenceOwned,
         getWeaponNote: state.getWeaponNote,
         updateWeaponNote: state.updateWeaponNote,
         toggleShowWeaponAttrs: state.toggleShowWeaponAttrs,
@@ -427,16 +482,15 @@
         showAttrHint: state.showAttrHint,
         dismissAttrHint: state.dismissAttrHint,
         showFilterPanel: state.showFilterPanel,
+        toggleFilterPanel: state.toggleFilterPanel,
         showAllSchemes: state.showAllSchemes,
         showPlanConfig: state.showPlanConfig,
         showPlanConfigHintDot: state.showPlanConfigHintDot,
         togglePlanConfig: state.togglePlanConfig,
         recommendationConfig: state.recommendationConfig,
         regionOptions: state.regionOptions,
-        regionPriorityModeOptions: state.regionPriorityModeOptions,
         showBackToTop: state.showBackToTop,
         scrollToTop: state.scrollToTop,
-        scrollToWeaponList: state.scrollToWeaponList,
         tutorialActive: state.tutorialActive,
         tutorialStep: state.tutorialStep,
         tutorialVisibleLines: state.tutorialVisibleLines,
@@ -445,7 +499,7 @@
         tutorialStepKey: state.tutorialStepKey,
         tutorialStepReady: state.tutorialStepReady,
         tutorialWeapon: state.tutorialWeapon,
-        tutorialExcluded: state.tutorialExcluded,
+        tutorialEssenceOwned: state.tutorialEssenceOwned,
         tutorialNote: state.tutorialNote,
         tutorialBodyCanCollapse: state.tutorialBodyCanCollapse,
         tutorialBodyCollapsed: state.tutorialBodyCollapsed,
@@ -471,8 +525,9 @@
         closeTutorialComplete: state.closeTutorialComplete,
         finishTutorial: state.finishTutorial,
         toggleTutorialBody: state.toggleTutorialBody,
-        toggleTutorialExclude: state.toggleTutorialExclude,
+        toggleTutorialEssenceOwned: state.toggleTutorialEssenceOwned,
         updateTutorialNote: state.updateTutorialNote,
+        resizeNoteTextarea,
         markTutorialNoteTouched: state.markTutorialNoteTouched,
         tutorialWeaponTarget: state.tutorialWeaponTarget,
         tutorialSchemeTarget: state.tutorialSchemeTarget,
@@ -488,10 +543,13 @@
         hasAttributeFilters: state.hasAttributeFilters,
         filteredWeapons: state.filteredWeapons,
         visibleFilteredWeapons: state.visibleFilteredWeapons,
+        hiddenInSelectorSummary: state.hiddenInSelectorSummary,
+        getSelectorHiddenReason: state.getSelectorHiddenReason,
         weaponGridTopSpacer: state.weaponGridTopSpacer,
         weaponGridBottomSpacer: state.weaponGridBottomSpacer,
         allFilteredSelected: state.allFilteredSelected,
         recommendations: state.recommendations,
+        recommendationEmptyReason: state.recommendationEmptyReason,
         coverageSummary: state.coverageSummary,
         primaryRecommendations: state.primaryRecommendations,
         extraRecommendations: state.extraRecommendations,
@@ -533,6 +591,22 @@
         showAbout: state.showAbout,
         showNotice: state.showNotice,
         showChangelog: state.showChangelog,
+        hasLegacyMigrationData: state.hasLegacyMigrationData,
+        showMigrationModal: state.showMigrationModal,
+        migrationMappingMode: state.migrationMappingMode,
+        migrationConflictStrategy: state.migrationConflictStrategy,
+        showMigrationConfirmModal: state.showMigrationConfirmModal,
+        migrationConfirmAction: state.migrationConfirmAction,
+        migrationConfirmCountdown: state.migrationConfirmCountdown,
+        migrationPreviewExpanded: state.migrationPreviewExpanded,
+        migrationModalScrollable: state.migrationModalScrollable,
+        migrationPreview: state.migrationPreview,
+        toggleMigrationPreviewDetails: state.toggleMigrationPreviewDetails,
+        shouldShowConflictStrategy: state.shouldShowConflictStrategy,
+        migrationConflictOptions: state.migrationConflictOptions,
+        openMigrationConfirm: state.openMigrationConfirm,
+        closeMigrationConfirm: state.closeMigrationConfirm,
+        confirmMigrationAction: state.confirmMigrationAction,
         skipNotice: state.skipNotice,
         openNotice: state.openNotice,
         openChangelog: state.openChangelog,
@@ -562,6 +636,8 @@
         customBackgroundName: state.customBackgroundName,
         customBackgroundError: state.customBackgroundError,
         customBackgroundApi: state.customBackgroundApi,
+        backgroundDisplayEnabled: state.backgroundDisplayEnabled,
+        toggleBackgroundDisplayEnabled: state.toggleBackgroundDisplayEnabled,
         handleBackgroundFile: state.handleBackgroundFile,
         clearCustomBackground: state.clearCustomBackground,
         // Strategy Module
@@ -591,6 +667,7 @@
   });
 
   app.component("PlanConfigControl", planConfigControl);
+  app.component("MatchStatusLine", matchStatusLine);
   app.directive("lazy-src", lazyImageDirective);
   app.mount("#app");
 })();

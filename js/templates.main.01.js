@@ -40,7 +40,7 @@
             </div>
           </div>
           <div class="theme-switch" @click.stop>
-            <label class="theme-label" for="theme-mode-select">{{ t("界面主题") }}</label>
+            <label class="theme-label" for="theme-mode-select">{{ t("主题") }}</label>
             <select
               id="theme-mode-select"
               class="theme-select"
@@ -73,6 +73,29 @@
               </div>
               <div class="secondary-item secondary-desc">
                 {{ t("自动模式会根据渲染性能临时切换低GPU模式。") }}
+              </div>
+              <div class="secondary-item">
+                <div class="secondary-label">{{ t("背景显示") }}</div>
+                <button
+                  class="ghost-button toggle-button switch-toggle"
+                  :class="{ 'is-active': backgroundDisplayEnabled }"
+                  role="switch"
+                  :aria-checked="backgroundDisplayEnabled ? 'true' : 'false'"
+                  :disabled="lowGpuEnabled"
+                  @click="toggleBackgroundDisplayEnabled"
+                >
+                  <span class="switch-label">{{ backgroundDisplayEnabled ? t("已开启") : t("已关闭") }}</span>
+                  <span class="switch-track" :class="{ on: backgroundDisplayEnabled }">
+                    <span class="switch-thumb"></span>
+                  </span>
+                </button>
+                <div class="secondary-hint">
+                  {{
+                    lowGpuEnabled
+                      ? t("低GPU模式下背景固定关闭，此开关仅在标准模式生效。")
+                      : t("关闭后仅显示纯色背景。")
+                  }}
+                </div>
               </div>
               <div class="secondary-item">
                 <div class="secondary-label">{{ t("背景图片") }}</div>
@@ -124,7 +147,7 @@
           </div>
         </div>
         <div class="hero-nav-stack">
-          <div v-if="canShowAds && isAdPortrait" class="slot-hero-shell is-slot-compact" aria-label="slot-banner-mobile">
+          <div v-if="canShowAds && isAdPortrait" class="slot-hero-shell" :aria-label="t('广告位（移动端）')">
             <button
               class="slot-close-button"
               type="button"
@@ -137,9 +160,14 @@
             <div v-if="adPreviewMode" class="slot-preview-banner">
               {{ t("广告预览模式（本地）") }}
             </div>
-            <div v-else class="slot-provider-net slot-provider-auto" data-id="1050" data-placeholder="none"></div>
+            <div
+              v-else
+              class="adwork-net adwork-auto slot-provider-net slot-provider-auto"
+              data-id="1050"
+              data-placeholder="none"
+            ></div>
           </div>
-          <nav class="main-nav hero-nav">
+          <nav class="main-nav hero-nav" :aria-label="t('主导航')">
           <button 
             class="nav-item" 
             :class="{ active: currentView === 'planner' }" 
@@ -172,7 +200,7 @@
         </div>
       </header>
       <div v-if="showAiNotice" class="ai-notice">
-        <span class="ai-chip">AI</span>
+        <span class="ai-chip">{{ t("AI") }}</span>
         <span>{{ t("当前语言内容由 AI 翻译，可能存在不准确。如发现错误，请前往 GitHub 反馈。") }}</span>
       </div>
       <div v-if="lowGpuEnabled" class="perf-status">
@@ -222,16 +250,8 @@
             {{ t("方案推荐") }} <span class="count">{{ recommendations.length }}</span>
           </button>
         </div>
-        <div class="mobile-hint" :class="{ 'mobile-hint-with-action': isPortrait && mobilePanel === 'weapons' }">
+        <div class="mobile-hint">
           <span>{{ t("手机端可通过上方标签切换“武器选择 / 方案推荐”，并可下滑继续浏览列表。") }}</span>
-          <button
-            v-if="isPortrait && mobilePanel === 'weapons'"
-            class="ghost-button mobile-hint-action"
-            type="button"
-            @click="scrollToWeaponList"
-          >
-            {{ t("点我直达武器列表") }}
-          </button>
         </div>
         <section class="panel" :class="{ 'panel-hidden': mobilePanel !== 'weapons' }">
           <div class="panel-title">
@@ -239,11 +259,14 @@
             <div v-if="isPortrait" class="panel-actions">
               <plan-config-control
                 :t="t"
+                :t-term="tTerm"
                 :recommendation-config="recommendationConfig"
                 :show-plan-config="showPlanConfig"
                 :show-plan-config-hint-dot="showPlanConfigHintDot"
                 :region-options="regionOptions"
-                :t-plan-priority-mode-options="tPlanPriorityModeOptions"
+                :t-region-priority-mode-options="tRegionPriorityModeOptions"
+                :t-ownership-priority-mode-options="tOwnershipPriorityModeOptions"
+                :t-strict-priority-order-options="tStrictPriorityOrderOptions"
                 @toggle="togglePlanConfig"
               ></plan-config-control>
             </div>
@@ -266,9 +289,9 @@
                 }"
                 @click="toggleShowWeaponAttrs"
               >
-                {{ showWeaponAttrs ? t("隐藏属性/排除/备注") : t("显示属性/排除/备注") }}
+                {{ showWeaponAttrs ? t("隐藏属性/拥有/备注") : t("显示属性/拥有/备注") }}
               </button>
-              <button class="ghost-button" @click="showFilterPanel = !showFilterPanel">
+              <button class="ghost-button" @click="toggleFilterPanel">
                 {{ showFilterPanel ? t("折叠属性筛选") : t("展开属性筛选") }}
               </button>
             </div>
@@ -284,8 +307,8 @@
             <div v-if="showAttrHint" class="attr-hint">
               <span class="attr-hint-text">
                 {{
-                  t("提示：点击“{label}”按钮，可切换显示属性和排除功能。", {
-                    label: t("显示属性/排除/备注")
+                  t("提示：点击“{label}”按钮，可切换显示属性与拥有状态功能。", {
+                    label: t("显示属性/拥有/备注")
                   })
                 }}
               </span>
@@ -382,6 +405,18 @@
                 </button>
               </div>
               <div class="filter-hint">{{ t("灰色属性代表当前筛选下暂无武器") }}</div>
+              <div v-if="hiddenInSelectorSummary && hiddenInSelectorSummary.total" class="filter-hint">
+                {{ t("当前有 {count} 把武器因隐藏开关未显示", { count: hiddenInSelectorSummary.total }) }}
+                <span v-if="hiddenInSelectorSummary.unowned > 0"
+                  >（{{ t("未拥有 {count}", { count: hiddenInSelectorSummary.unowned }) }}）</span
+                >
+                <span v-if="hiddenInSelectorSummary.essenceOwned > 0"
+                  >（{{ t("基质已有 {count}", { count: hiddenInSelectorSummary.essenceOwned }) }}）</span
+                >
+                <span v-if="hiddenInSelectorSummary.fourStar > 0"
+                  >（{{ t("四星 {count}", { count: hiddenInSelectorSummary.fourStar }) }}）</span
+                >
+              </div>
             </div>
           </div>
 
@@ -392,11 +427,12 @@
                 v-for="weapon in selectedWeaponRows"
                 :key="weapon.name"
                 class="tag"
-                :class="{ 'is-excluded': weapon.isExcluded }"
+                :class="{ 'is-unowned': weapon.isUnowned, 'is-essence-owned': weapon.isEssenceOwned }"
                 :title="weapon.note ? \`\${t('备注：')}\${weapon.note}\` : ''"
               >
-                {{ tTerm("weapon", weapon.name) }}
-                <span v-if="weapon.isExcluded" class="tag-note">{{ t("排除") }}</span>
+                <span class="tag-name">{{ tTerm("weapon", weapon.name) }}</span>
+                <span v-if="weapon.isUnowned" class="tag-note is-unowned">{{ t("未拥有") }}</span>
+                <span v-if="weapon.isEssenceOwned" class="tag-note is-essence-owned">{{ t("基质已有") }}</span>
                 <button @click.stop="toggleWeapon(weapon, 'tag')">✕</button>
               </span>
             </div>
@@ -424,10 +460,11 @@
               v-for="weapon in visibleFilteredWeapons"
               :key="weapon.name"
               class="weapon-item"
-              v-memo="[locale, selectedNameSet.has(weapon.name), isExcluded(weapon.name)]"
+              v-memo="[locale, localeRenderVersion, selectedNameSet.has(weapon.name), isWeaponOwned(weapon.name), isEssenceOwned(weapon.name)]"
               :class="{
                 'is-selected': selectedNameSet.has(weapon.name),
-                'is-excluded': isExcluded(weapon.name),
+                'is-unowned': isUnowned(weapon.name),
+                'is-essence-owned': isEssenceOwned(weapon.name),
                 'rarity-6': weapon.rarity === 6,
                 'rarity-5': weapon.rarity === 5,
                 'rarity-4': weapon.rarity === 4,
@@ -458,6 +495,9 @@
                 />
               </div>
               <div class="weapon-band"></div>
+              <div v-if="getSelectorHiddenReason(weapon)" class="weapon-hidden-chip">
+                {{ getSelectorHiddenReason(weapon) }}
+              </div>
               <div class="weapon-name">
                 <div class="weapon-title">{{ tTerm("weapon", weapon.name) }}</div>
               </div>
@@ -471,7 +511,7 @@
 
           <div v-else class="weapon-attr-list">
           <div
-            v-if="tutorialActive && (tutorialStepKey === 'exclude' || tutorialStepKey === 'note')"
+            v-if="tutorialActive && (tutorialStepKey === 'essence-owned' || tutorialStepKey === 'note')"
             class="scheme-weapon-item weapon-attr-item tutorial-weapon-item"
             ref="tutorialWeaponTarget"
           >
@@ -491,12 +531,12 @@
                     @error="handleCharacterImageError"
                   />
                 </span>
-                <span>{{ tutorialWeapon.name }}</span>
+                <span class="weapon-main-name">{{ tutorialWeapon.name }}</span>
                 <span class="rarity" :style="rarityTextStyle(tutorialWeapon.rarity)">
                   {{ tutorialWeapon.rarity }}★
                 </span>
                 <span class="badge tutorial-badge">{{ t("教学示例") }}</span>
-                <span class="badge muted" v-if="tutorialExcluded">{{ t("排除") }}</span>
+                <span class="badge muted" v-if="tutorialEssenceOwned">{{ t("基质已有") }}</span>
                 <span v-if="tutorialWeapon.short" class="weapon-short">
                   {{ tTerm("short", tutorialWeapon.short) }}
                 </span>
@@ -511,26 +551,27 @@
                 <button
                   class="exclude-toggle small"
                   :class="{
-                    active: tutorialExcluded,
-                    'tutorial-highlight': tutorialStepKey === 'exclude'
+                    active: tutorialEssenceOwned,
+                    'intent-alert': !tutorialEssenceOwned,
+                    'tutorial-highlight': tutorialStepKey === 'essence-owned'
                   }"
-                  @click.stop="toggleTutorialExclude"
+                  @click.stop="toggleTutorialEssenceOwned"
                 >
-                  {{ tutorialExcluded ? t("取消排除") : t("标记排除") }}
+                  {{ tutorialEssenceOwned ? t("标记基质未有") : t("标记基质已有") }}
                 </button>
-                <input
+                <textarea
                   class="exclude-note-input"
                   :class="{
-                    'is-excluded': tutorialExcluded,
+                    'is-essence-owned': tutorialEssenceOwned,
                     'tutorial-highlight': tutorialStepKey === 'note'
                   }"
-                  type="text"
+                  rows="1"
                   maxlength="30"
                   :placeholder="t('备注（可选）')"
                   :value="tutorialNote"
-                  @focus="markTutorialNoteTouched"
-                  @input="updateTutorialNote($event.target.value)"
-                />
+                  @focus="markTutorialNoteTouched(); resizeNoteTextarea($event)"
+                  @input="resizeNoteTextarea($event); updateTutorialNote($event.target.value)"
+                ></textarea>
               </div>
             </div>
             <div class="weapon-attr-anchor"></div>
@@ -545,8 +586,10 @@
               class="scheme-weapon-item weapon-attr-item"
               v-memo="[
                 locale,
+                localeRenderVersion,
                 selectedNameSet.has(weapon.name),
-                isExcluded(weapon.name),
+                isWeaponOwned(weapon.name),
+                isEssenceOwned(weapon.name),
                 filterS1.includes(weapon.s1),
                 filterS2.includes(weapon.s2),
                 filterS3.includes(weapon.s3),
@@ -554,7 +597,8 @@
               ]"
               :class="{
                 'is-selected': selectedNameSet.has(weapon.name),
-                'is-excluded': isExcluded(weapon.name),
+                'is-unowned': isUnowned(weapon.name),
+                'is-essence-owned': isEssenceOwned(weapon.name),
               }"
               @click="toggleWeapon(weapon, 'attrs')"
             >
@@ -584,12 +628,16 @@
                     @error="handleCharacterImageError"
                   />
                 </span>
-                <span>{{ tTerm("weapon", weapon.name) }}</span>
+                <span class="weapon-main-name">{{ tTerm("weapon", weapon.name) }}</span>
                 <span class="rarity" :style="rarityTextStyle(weapon.rarity)">
                   {{ weapon.rarity }}★
                 </span>
                 <span class="badge" v-if="selectedNameSet.has(weapon.name)">{{ t("已选") }}</span>
-                <span class="badge muted" v-if="isExcluded(weapon.name)">{{ t("排除") }}</span>
+                <span class="badge muted" v-if="isUnowned(weapon.name)">{{ t("未拥有") }}</span>
+                <span class="badge muted" v-if="isEssenceOwned(weapon.name)">{{ t("基质已有") }}</span>
+                <span v-if="getSelectorHiddenReason(weapon)" class="badge warn weapon-hidden-note">
+                  {{ getSelectorHiddenReason(weapon) }}
+                </span>
                 <span v-if="weapon.short" class="weapon-short">
                   {{ tTerm("short", weapon.short) }}
                 </span>
@@ -618,20 +666,28 @@
               <div class="weapon-exclude-row" @click.stop>
                 <button
                   class="exclude-toggle small"
-                  :class="{ active: isExcluded(weapon.name) }"
-                  @click.stop="toggleExclude(weapon)"
+                  :class="{ active: !isWeaponOwned(weapon.name), 'intent-alert': isWeaponOwned(weapon.name) }"
+                  @click.stop="toggleWeaponOwned(weapon)"
                 >
-                  {{ isExcluded(weapon.name) ? t("取消排除") : t("标记排除") }}
+                  {{ isWeaponOwned(weapon.name) ? t("标记武器未有") : t("标记武器拥有") }}
                 </button>
-                <input
+                <button
+                  class="exclude-toggle small"
+                  :class="{ active: isEssenceOwned(weapon.name), 'intent-alert': !isEssenceOwned(weapon.name) }"
+                  @click.stop="toggleEssenceOwned(weapon)"
+                >
+                  {{ isEssenceOwned(weapon.name) ? t("标记基质未有") : t("标记基质已有") }}
+                </button>
+                <textarea
                   class="exclude-note-input"
-                  :class="{ 'is-excluded': isExcluded(weapon.name) }"
-                  type="text"
+                  :class="{ 'is-essence-owned': isEssenceOwned(weapon.name), 'is-unowned': isUnowned(weapon.name) }"
+                  rows="1"
                   maxlength="30"
                   :placeholder="t('备注（可选）')"
                   :value="getWeaponNote(weapon.name)"
-                  @input="updateWeaponNote(weapon, $event.target.value)"
-                />
+                  @focus="resizeNoteTextarea($event)"
+                  @input="resizeNoteTextarea($event); updateWeaponNote(weapon, $event.target.value)"
+                ></textarea>
               </div>
             </div>
             <div
@@ -648,14 +704,17 @@
             <div class="panel-actions">
               <plan-config-control
                 :t="t"
+                :t-term="tTerm"
                 :recommendation-config="recommendationConfig"
                 :show-plan-config="showPlanConfig"
                 :show-plan-config-hint-dot="showPlanConfigHintDot"
                 :region-options="regionOptions"
-                :t-plan-priority-mode-options="tPlanPriorityModeOptions"
+                :t-region-priority-mode-options="tRegionPriorityModeOptions"
+                :t-ownership-priority-mode-options="tOwnershipPriorityModeOptions"
+                :t-strict-priority-order-options="tStrictPriorityOrderOptions"
                 @toggle="togglePlanConfig"
               ></plan-config-control>
-              <div class="pill">{{ t("已选") }} {{ selectedWeapons.length }} {{ t("把") }}</div>
+              <div class="pill">{{ t("已选") }} {{ selectedCount }} / {{ t("待刷") }} {{ pendingCount }} {{ t("把") }}</div>
               <button
                 v-if="extraRecommendations.length"
                 class="ghost-button"
@@ -670,7 +729,7 @@
             </div>
           </div>
 
-          <div v-if="canShowAds && !isAdPortrait" class="card slot-inline-card slot-inline-top is-slot-compact" aria-label="slot-banner-desktop">
+          <div v-if="canShowAds && !isAdPortrait" class="card slot-inline-card slot-inline-top" :aria-label="t('广告位（桌面端）')">
             <button
               class="slot-close-button"
               type="button"
@@ -683,22 +742,28 @@
             <div v-if="adPreviewMode" class="slot-preview-banner">
               {{ t("广告预览模式（本地）") }}
             </div>
-            <div v-else class="slot-provider-net slot-provider-auto" data-id="1050" data-placeholder="none"></div>
+            <div
+              v-else
+              class="adwork-net adwork-auto slot-provider-net slot-provider-auto"
+              data-id="1050"
+              data-placeholder="none"
+            ></div>
           </div>
 
-          <div v-if="!selectedWeapons.length" class="empty">
+          <div v-if="!selectedCount" class="empty">
             {{ t("请选择至少一把武器，系统将自动推荐可共刷的副本方案。") }}
           </div>
 
-          <div v-else-if="!recommendations.length" class="recommendations">
+          <div v-else-if="recommendationEmptyReason === 'filteredOut'" class="empty">
+            {{ t("当前筛选已隐藏全部结果，请调整筛选开关。") }}
+          </div>
+
+          <div v-else-if="recommendationEmptyReason === 'noScheme'" class="recommendations">
             <div class="card">
               <div class="card-header">
                 <div>
                   <div class="card-title">{{ t("当前组合无可用方案") }}</div>
                   <div class="hint">{{ t("附加/技能属性无法统一锁定，或副本池不覆盖所需词条。") }}</div>
-                </div>
-                <div class="strategy-row">
-                  <span class="pill warn">{{ t("请拆分批次刷取") }}</span>
                 </div>
               </div>
 
@@ -730,11 +795,14 @@
                   class="scheme-weapon-item is-selected"
                   v-memo="[
                     locale,
+                    localeRenderVersion,
                     weapon.baseLocked,
                     weapon.baseConflict,
                     fallbackPlan.s2Conflict,
                     fallbackPlan.s3Conflict,
-                    isExcluded(weapon.name),
+                    isWeaponOwned(weapon.name),
+                    isUnowned(weapon.name),
+                    isEssenceOwned(weapon.name),
                     getWeaponNote(weapon.name),
                   ]"
                 >
@@ -751,7 +819,7 @@
                         @error="handleCharacterImageError"
                       />
                     </span>
-                    <span>{{ tTerm("weapon", weapon.name) }}</span>
+                    <span class="weapon-main-name">{{ tTerm("weapon", weapon.name) }}</span>
                     <span class="rarity" :style="rarityTextStyle(weapon.rarity)">
                       {{ weapon.rarity }}★
                     </span>
@@ -783,20 +851,28 @@
                   <div class="weapon-exclude-row" @click.stop>
                     <button
                       class="exclude-toggle small"
-                      :class="{ active: isExcluded(weapon.name) }"
-                      @click.stop="toggleExclude(weapon)"
+                      :class="{ active: !isWeaponOwned(weapon.name), 'intent-alert': isWeaponOwned(weapon.name) }"
+                      @click.stop="toggleWeaponOwned(weapon)"
                     >
-                      {{ isExcluded(weapon.name) ? t("取消排除") : t("标记排除") }}
+                      {{ isWeaponOwned(weapon.name) ? t("标记武器未有") : t("标记武器拥有") }}
                     </button>
-                    <input
+                    <button
+                      class="exclude-toggle small"
+                      :class="{ active: isEssenceOwned(weapon.name), 'intent-alert': !isEssenceOwned(weapon.name) }"
+                      @click.stop="toggleEssenceOwned(weapon)"
+                    >
+                      {{ isEssenceOwned(weapon.name) ? t("标记基质未有") : t("标记基质已有") }}
+                    </button>
+                    <textarea
                       class="exclude-note-input"
-                      :class="{ 'is-excluded': isExcluded(weapon.name) }"
-                      type="text"
+                      :class="{ 'is-essence-owned': isEssenceOwned(weapon.name), 'is-unowned': isUnowned(weapon.name) }"
+                      rows="1"
                       maxlength="30"
                       :placeholder="t('备注（可选）')"
                       :value="getWeaponNote(weapon.name)"
-                      @input="updateWeaponNote(weapon, $event.target.value)"
-                    />
+                      @focus="resizeNoteTextarea($event)"
+                      @input="resizeNoteTextarea($event); updateWeaponNote(weapon, $event.target.value)"
+                    ></textarea>
                   </div>
 `);
 })();

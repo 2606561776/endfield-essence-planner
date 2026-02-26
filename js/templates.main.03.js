@@ -202,6 +202,12 @@
                     <div class="weapon-band"></div>
                     <div class="weapon-name">
                       <div class="weapon-title">{{ tTerm("weapon", weapon.name) }}</div>
+                      <match-status-line
+                        :weapon-name="weapon.name"
+                        :t="t"
+                        :is-weapon-owned="isWeaponOwned"
+                        :is-essence-owned="isEssenceOwned"
+                      ></match-status-line>
                     </div>
                   </button>
                 </div>
@@ -268,6 +274,12 @@
                           <div class="weapon-title">
                             {{ tTerm("weapon", matchSourceWeapon.name) }}
                           </div>
+                          <match-status-line
+                            :weapon-name="matchSourceWeapon.name"
+                            :t="t"
+                            :is-weapon-owned="isWeaponOwned"
+                            :is-essence-owned="isEssenceOwned"
+                          ></match-status-line>
                         </div>
                       </div>
                       <div class="scheme-weapon-attrs match-selection-attrs">
@@ -322,6 +334,12 @@
                       <div class="weapon-band"></div>
                       <div class="weapon-name">
                         <div class="weapon-title">{{ tTerm("weapon", weapon.name) }}</div>
+                        <match-status-line
+                          :weapon-name="weapon.name"
+                          :t="t"
+                          :is-weapon-owned="isWeaponOwned"
+                          :is-essence-owned="isEssenceOwned"
+                        ></match-status-line>
                       </div>
                     </div>
                   </div>
@@ -338,7 +356,7 @@
         </transition>
       </main>
 
-      <footer class="site-footer" aria-label="footer">
+      <footer class="site-footer" :aria-label="t('页脚')">
         <div class="site-footer-inner">
           <span class="footer-item">
             <span class="footer-label">{{ t("版权所有") }}</span>
@@ -437,6 +455,321 @@
               <div class="about-actions">
                 <button class="ghost-button" @click="closeNotice">{{ t("关闭") }}</button>
               </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="fade-scale">
+        <div v-if="showMigrationModal" class="about-overlay migration-overlay">
+          <div class="about-card migration-card">
+            <div class="migration-content">
+              <h3>{{ t("检测到旧版武器标记数据") }}</h3>
+            <p class="migration-warning-text">
+              {{ t("建议尽快完成迁移或放弃旧数据，以免后续编辑时造成冲突或未来不再兼容该数据结构。") }}
+            </p>
+            <p class="migration-warning-text">
+              {{ t("警告：该迁移功能尚未经过充分测试，可能存在异常或结果偏差。") }}
+            </p>
+
+            <div class="migration-preview">
+              <div class="migration-preview-item">
+                <span class="migration-preview-label">{{ t("旧数据条目") }}</span>
+                <span class="migration-preview-value">{{ migrationPreview.totalLegacyCount }}</span>
+              </div>
+              <div class="migration-preview-item">
+                <span class="migration-preview-label">{{ t("将影响条目") }}</span>
+                <span class="migration-preview-value">{{ migrationPreview.effectCount }}</span>
+              </div>
+              <div class="migration-preview-item">
+                <span class="migration-preview-label">{{ t("状态变更") }}</span>
+                <span class="migration-preview-value">{{ migrationPreview.statusChangeCount }}</span>
+              </div>
+              <div class="migration-preview-item">
+                <span class="migration-preview-label">{{ t("备注变更") }}</span>
+                <span class="migration-preview-value">{{ migrationPreview.noteChangeCount }}</span>
+              </div>
+              <div class="migration-preview-item warn">
+                <span class="migration-preview-label">{{ t("冲突条目") }}</span>
+                <span class="migration-preview-value">{{ migrationPreview.conflictCount }}</span>
+              </div>
+            </div>
+
+            <div class="migration-block migration-detail-block">
+              <div class="migration-detail-head">
+                <div class="migration-block-title">
+                  {{ t("迁移预览详情") }}
+                </div>
+                <button class="ghost-button migration-detail-toggle" @click="toggleMigrationPreviewDetails">
+                  {{ migrationPreviewExpanded ? t("收起详情") : t("展开详情") }}
+                </button>
+              </div>
+              <p v-if="migrationModalScrollable" class="migration-scroll-tip">
+                {{ t("提示：当前弹窗内容较多，可上下滑动查看。") }}
+              </p>
+              <div v-if="migrationPreviewExpanded" class="migration-detail-columns">
+                <div class="migration-detail-column">
+                  <div class="migration-detail-title">{{ t("冲突条目预览") }}</div>
+                  <div v-if="!migrationPreview.conflictItems.length" class="migration-detail-empty">
+                    {{ t("暂无冲突条目") }}
+                  </div>
+                  <ul v-else class="migration-detail-list">
+                    <li
+                      v-for="item in migrationPreview.conflictItems"
+                      :key="'migration-conflict-preview-' + item.name"
+                      class="migration-detail-item warn"
+                    >
+                      <div class="migration-detail-item-head">
+                        <span class="migration-detail-name">{{ tTerm("weapon", item.name) }}</span>
+                        <span class="migration-detail-tags">
+                          <span
+                            v-for="field in item.conflictFields"
+                            :key="'migration-conflict-field-' + item.name + '-' + field"
+                            class="migration-detail-chip warn"
+                          >
+                            {{
+                              field === 'weaponOwned'
+                                ? t("武器状态")
+                                : field === 'essenceOwned'
+                                ? t("基质状态")
+                                : t("备注")
+                            }}
+                          </span>
+                        </span>
+                      </div>
+                      <div v-if="item.changes && item.changes.length" class="migration-detail-changes">
+                        <div
+                          v-for="change in item.changes"
+                          :key="'migration-conflict-change-' + item.name + '-' + change.field"
+                          class="migration-detail-change-line"
+                        >
+                          <span class="migration-detail-change-field">
+                            {{
+                              change.field === 'weaponOwned'
+                                ? t("武器状态")
+                                : change.field === 'essenceOwned'
+                                ? t("基质状态")
+                                : t("备注")
+                            }}
+                          </span>
+                          <span class="migration-detail-change-arrow">:</span>
+                          <span class="migration-detail-change-value is-from">
+                            {{
+                              change.field === 'note'
+                                ? (change.from || t("空"))
+                                : change.field === 'essenceOwned'
+                                ? (change.from ? t("基质已有") : t("基质未有"))
+                                : (change.from ? t("已拥有") : t("未拥有"))
+                            }}
+                          </span>
+                          <span class="migration-detail-change-arrow">→</span>
+                          <span class="migration-detail-change-value is-to">
+                            {{
+                              change.field === 'note'
+                                ? (change.to || t("空"))
+                                : change.field === 'essenceOwned'
+                                ? (change.to ? t("基质已有") : t("基质未有"))
+                                : (change.to ? t("已拥有") : t("未拥有"))
+                            }}
+                          </span>
+                        </div>
+                      </div>
+                      <div v-else class="migration-detail-meta-text">
+                        {{ t("当前字段已存在，按冲突策略处理。") }}
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="migration-detail-column">
+                  <div class="migration-detail-title">{{ t("变更条目预览") }}</div>
+                  <div v-if="!migrationPreview.effectItems.length" class="migration-detail-empty">
+                    {{ t("暂无变更条目") }}
+                  </div>
+                  <ul v-else class="migration-detail-list">
+                    <li
+                      v-for="item in migrationPreview.effectItems"
+                      :key="'migration-effect-preview-' + item.name"
+                      class="migration-detail-item"
+                    >
+                      <div class="migration-detail-item-head">
+                        <span class="migration-detail-name">{{ tTerm("weapon", item.name) }}</span>
+                        <span v-if="item.conflict" class="migration-detail-chip warn">
+                          {{ t("冲突") }}
+                        </span>
+                      </div>
+                      <div class="migration-detail-changes">
+                        <div
+                          v-for="change in item.changes"
+                          :key="'migration-effect-change-' + item.name + '-' + change.field"
+                          class="migration-detail-change-line"
+                        >
+                          <span class="migration-detail-change-field">
+                            {{
+                              change.field === 'weaponOwned'
+                                ? t("武器状态")
+                                : change.field === 'essenceOwned'
+                                ? t("基质状态")
+                                : t("备注")
+                            }}
+                          </span>
+                          <span class="migration-detail-change-arrow">:</span>
+                          <span class="migration-detail-change-value is-from">
+                            {{
+                              change.field === 'note'
+                                ? (change.from || t("空"))
+                                : change.field === 'essenceOwned'
+                                ? (change.from ? t("基质已有") : t("基质未有"))
+                                : (change.from ? t("已拥有") : t("未拥有"))
+                            }}
+                          </span>
+                          <span class="migration-detail-change-arrow">→</span>
+                          <span class="migration-detail-change-value is-to">
+                            {{
+                              change.field === 'note'
+                                ? (change.to || t("空"))
+                                : change.field === 'essenceOwned'
+                                ? (change.to ? t("基质已有") : t("基质未有"))
+                                : (change.to ? t("已拥有") : t("未拥有"))
+                            }}
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="migration-block">
+              <div class="migration-block-title">{{ t("迁移映射方案") }}</div>
+              <div class="migration-option-grid">
+                <button
+                  class="ghost-button migration-option"
+                  :class="{ 'is-active': migrationMappingMode === 'essenceOwned' }"
+                  @click="migrationMappingMode = 'essenceOwned'"
+                >
+                  <span class="migration-option-title">{{ t("旧版“排除”标记 → 基质已拥有") }}</span>
+                  <span class="migration-option-desc">{{ t("将旧版“排除”标记理解为“基质已有，不再需要刷基质”。") }}</span>
+                </button>
+                <button
+                  class="ghost-button migration-option"
+                  :class="{ 'is-active': migrationMappingMode === 'weaponUnowned' }"
+                  @click="migrationMappingMode = 'weaponUnowned'"
+                >
+                  <span class="migration-option-title">{{ t("旧版“排除”标记 → 武器未拥有") }}</span>
+                  <span class="migration-option-desc">{{ t("将旧版“排除”标记理解为“武器未拥有”，其余武器视为“武器已拥有”。") }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="shouldShowConflictStrategy" class="migration-block">
+              <div class="migration-block-title">
+                {{ t("检测到冲突，请先选择冲突处理策略") }}
+              </div>
+              <div class="migration-option-grid">
+                <button
+                  v-for="option in migrationConflictOptions"
+                  :key="'migration-conflict-' + option.value"
+                  class="ghost-button migration-option"
+                  :class="{ 'is-active': migrationConflictStrategy === option.value }"
+                  @click="migrationConflictStrategy = option.value"
+                >
+                  <span class="migration-option-title">{{ t(option.label) }}</span>
+                  <span class="migration-option-desc">{{ t(option.description) }}</span>
+                </button>
+              </div>
+            </div>
+
+            </div>
+
+            <div class="about-actions migration-actions">
+              <button
+                class="about-button migration-action migration-action-warn"
+                @click="openMigrationConfirm('apply')"
+              >
+                {{ t("开始迁移") }}
+              </button>
+              <button
+                class="about-button migration-action migration-action-danger"
+                @click="openMigrationConfirm('discard')"
+              >
+                {{ t("放弃旧数据") }}
+              </button>
+              <button
+                class="ghost-button migration-action migration-action-secondary"
+                @click="openMigrationConfirm('defer')"
+              >
+                {{ t("稍后再说") }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="fade-scale">
+        <div v-if="showMigrationConfirmModal" class="about-overlay migration-overlay migration-confirm-overlay">
+          <div class="about-card migration-card migration-confirm-card">
+            <div class="migration-content">
+              <h3>
+                {{
+                  migrationConfirmAction === 'apply'
+                    ? t("确认开始迁移？")
+                    : migrationConfirmAction === 'discard'
+                    ? t("确认放弃旧数据？")
+                    : t("确认稍后再说？")
+                }}
+              </h3>
+
+              <p class="migration-warning-text">
+                {{ t("警告：该迁移功能尚未经过充分测试，可能存在异常或结果偏差。但仍建议尽快完成迁移或放弃旧数据。") }}
+              </p>
+
+              <div v-if="migrationConfirmAction === 'apply'" class="migration-confirm-summary">
+                <div class="migration-confirm-row">
+                  <span class="migration-confirm-label">{{ t("迁移映射方案") }}</span>
+                  <span class="migration-confirm-value migration-confirm-highlight">
+                    {{
+                      migrationMappingMode === 'weaponUnowned'
+                        ? t("旧版“排除”标记 → 武器未拥有")
+                        : t("旧版“排除”标记 → 基质已拥有")
+                    }}
+                  </span>
+                </div>
+                <div v-if="shouldShowConflictStrategy" class="migration-confirm-row">
+                  <span class="migration-confirm-label">{{ t("冲突处理策略") }}</span>
+                  <span class="migration-confirm-value migration-confirm-highlight">
+                    {{
+                      migrationConflictStrategy === 'overwriteLegacy'
+                        ? t("旧数据覆盖新数据")
+                        : migrationConflictStrategy === 'keepCurrent'
+                        ? t("保留新数据，跳过冲突")
+                        : t("优先补全（推荐）")
+                    }}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="about-actions migration-actions">
+              <button class="ghost-button migration-action migration-action-secondary" @click="closeMigrationConfirm">
+                {{ t("取消") }}
+              </button>
+              <button
+                class="about-button migration-action migration-action-danger"
+                :disabled="migrationConfirmCountdown > 0"
+                @click="confirmMigrationAction"
+              >
+                {{
+                  migrationConfirmAction === 'apply'
+                    ? t("确认迁移")
+                    : migrationConfirmAction === 'discard'
+                    ? t("确认放弃")
+                    : t("确认稍后")
+                }}
+                <span v-if="migrationConfirmCountdown > 0">（{{ migrationConfirmCountdown }}s）</span>
+              </button>
             </div>
           </div>
         </div>
@@ -717,7 +1050,7 @@
               target="_blank"
               rel="noreferrer"
             >
-              <span class="repo-chip">OFFICIAL</span>
+              <span class="repo-chip">{{ t("官方") }}</span>
               <span>{{ t("访问官方域名") }}</span>
               <span class="repo-arrow">↗</span>
             </a>

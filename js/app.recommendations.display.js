@@ -17,12 +17,15 @@
       return [target, ...rest];
     };
 
+    const hasVisibleRows = (scheme) =>
+      Boolean(scheme && Array.isArray(scheme.weaponRows) && scheme.weaponRows.length);
+
     const displayPrimaryRecommendations = computed(() =>
-      reorderForTutorial(state.primaryRecommendations.value)
+      reorderForTutorial(state.primaryRecommendations.value).filter(hasVisibleRows)
     );
 
     const displayExtraRecommendations = computed(() =>
-      reorderForTutorial(state.extraRecommendations.value)
+      reorderForTutorial(state.extraRecommendations.value).filter(hasVisibleRows)
     );
 
     const displayRecommendations = computed(() => {
@@ -195,23 +198,25 @@
           return;
         }
         group.classList.add("is-wrapped");
+        // Keep weapon selection rows readable: do not downscale wrapped attrs there.
+        if (group.closest(".weapon-attr-item")) {
+          return;
+        }
         shrinkToFit(group);
       });
     };
 
     const scheduleAttrWrap = () => {
       nextTick(() => {
-        requestAnimationFrame(updateAttrWrap);
+        requestAnimationFrame(() => {
+          updateAttrWrap();
+          requestAnimationFrame(updateAttrWrap);
+        });
       });
     };
 
     const fallbackPlan = computed(() => {
-      const config = state.recommendationConfig.value || {};
-      const hideExcludedInPlans = Boolean(config.hideExcluded);
-      const excludedSet = hideExcludedInPlans ? state.excludedNameSet.value : null;
-      const targets = hideExcludedInPlans
-        ? state.selectedWeapons.value.filter((weapon) => !excludedSet.has(weapon.name))
-        : state.selectedWeapons.value;
+      const targets = state.selectedWeapons.value;
       if (!targets.length) return null;
       if (state.recommendations.value.length) return null;
 
@@ -260,12 +265,14 @@
     onMounted(() => {
       scheduleAttrWrap();
       scheduleRecommendationVirtualWindow();
+      window.addEventListener("load", scheduleAttrWrap);
       window.addEventListener("resize", scheduleAttrWrap);
       window.addEventListener("resize", scheduleRecommendationVirtualWindow);
       window.addEventListener("scroll", scheduleRecommendationVirtualWindow, { passive: true });
     });
 
     onBeforeUnmount(() => {
+      window.removeEventListener("load", scheduleAttrWrap);
       window.removeEventListener("resize", scheduleAttrWrap);
       window.removeEventListener("resize", scheduleRecommendationVirtualWindow);
       window.removeEventListener("scroll", scheduleRecommendationVirtualWindow);
@@ -276,7 +283,9 @@
         state.showWeaponAttrs,
         state.showAllSchemes,
         state.mobilePanel,
-        () => (state.recommendationConfig.value || {}).hideExcluded,
+        () => (state.recommendationConfig.value || {}).hideEssenceOwnedWeapons,
+        () => (state.recommendationConfig.value || {}).hideEssenceOwnedOwnedOnly,
+        () => (state.recommendationConfig.value || {}).hideUnownedWeapons,
       ],
       () => {
         scheduleAttrWrap();
@@ -292,6 +301,7 @@
     watch(
       () => state.currentView.value,
       () => {
+        scheduleAttrWrap();
         scheduleRecommendationVirtualWindow();
       },
       { immediate: true }
