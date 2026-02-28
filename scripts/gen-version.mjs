@@ -1,0 +1,82 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, "..");
+
+const readText = async (relativePath) => {
+  const absPath = path.join(rootDir, relativePath);
+  return fs.readFile(absPath, "utf8");
+};
+
+const extractFingerprint = async () => {
+  const html = await readText("index.html");
+  const match = html.match(/data-fingerprint="([^"]+)"/);
+  return match ? String(match[1]).trim() : "";
+};
+
+const extractAnnouncementVersion = async () => {
+  const content = await readText("data/content.js");
+  const sectionMatch = content.match(/announcement\s*:\s*\{([\s\S]*?)\}\s*,\s*changelog/);
+  if (!sectionMatch) return "";
+  const versionMatch = sectionMatch[1].match(/version\s*:\s*"([^"]+)"/);
+  return versionMatch ? String(versionMatch[1]).trim() : "";
+};
+
+const getCommitHash = () => {
+  const env = process.env;
+  const raw =
+    env.CF_PAGES_COMMIT_SHA ||
+    env.GITHUB_SHA ||
+    env.CI_COMMIT_SHA ||
+    env.VERCEL_GIT_COMMIT_SHA ||
+    "";
+  return String(raw || "").trim();
+};
+
+const toCompactTime = (date) => {
+  const pad = (num) => String(num).padStart(2, "0");
+  return (
+    date.getUTCFullYear() +
+    pad(date.getUTCMonth() + 1) +
+    pad(date.getUTCDate()) +
+    pad(date.getUTCHours()) +
+    pad(date.getUTCMinutes()) +
+    pad(date.getUTCSeconds())
+  );
+};
+
+const main = async () => {
+  const now = new Date();
+  const publishedAt = now.toISOString();
+  const commit = getCommitHash();
+  const commitShort = commit ? commit.slice(0, 8) : "";
+  const fingerprint = await extractFingerprint();
+  const announcementVersion = await extractAnnouncementVersion();
+  const timeSuffix = toCompactTime(now);
+  const buildId = commitShort ? `${commitShort}-${timeSuffix}` : `local-${timeSuffix}`;
+  const displayVersion = announcementVersion ? `${announcementVersion}+${buildId}` : buildId;
+
+  const payload = {
+    buildId,
+    displayVersion,
+    announcementVersion,
+    fingerprint,
+    publishedAt,
+  };
+
+  const jsonPath = path.join(rootDir, "data", "version.json");
+  const jsPath = path.join(rootDir, "data", "version.js");
+
+  await fs.writeFile(jsonPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await fs.writeFile(jsPath, `window.__APP_VERSION_INFO = ${JSON.stringify(payload, null, 2)};\n`, "utf8");
+
+  process.stdout.write(`[gen-version] buildId=${buildId} announcement=${announcementVersion || "n/a"}\n`);
+};
+
+main().catch((error) => {
+  process.stderr.write(`[gen-version] failed: ${error && error.message ? error.message : error}\n`);
+  process.exitCode = 1;
+});

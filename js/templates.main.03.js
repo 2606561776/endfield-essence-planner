@@ -1166,6 +1166,39 @@
         </div>
       </transition>
 
+      <transition name="fade-scale">
+        <div v-if="showUpdatePrompt" class="update-toast" role="status" aria-live="polite">
+          <div class="update-toast-card">
+            <h3>{{ t("检测到新版本") }}</h3>
+            <p class="update-check-desc">
+              {{ t("检测到站点已有更新，刷新后可使用最新功能与修复。") }}
+            </p>
+            <div class="update-version-grid">
+              <div class="update-version-row">
+                <span class="update-version-label">{{ t("当前版本") }}</span>
+                <span class="update-version-value">{{ updateCurrentVersionText || t("未知") }}</span>
+              </div>
+              <div class="update-version-row">
+                <span class="update-version-label">{{ t("最新版本") }}</span>
+                <span class="update-version-value">{{ updateLatestVersionText || t("未知") }}</span>
+              </div>
+              <div class="update-version-row" v-if="updateLatestPublishedAt">
+                <span class="update-version-label">{{ t("发布时间") }}</span>
+                <span class="update-version-value">{{ updateLatestPublishedAt }}</span>
+              </div>
+            </div>
+            <div class="about-actions update-check-actions">
+              <button class="about-button update-action-primary" @click="reloadToLatestVersion">
+                {{ t("立即刷新") }}
+              </button>
+              <button class="about-button update-action-secondary" @click="dismissUpdatePrompt">
+                {{ t("稍后提醒") }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <div v-if="showDomainWarning" class="domain-overlay">
         <div class="domain-card">
           <h3>{{ t("非官方域名提示") }}</h3>

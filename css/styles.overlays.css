@@ -1046,6 +1046,96 @@
         color: #d9fffb;
       }
 
+      .update-toast {
+        position: fixed;
+        right: 14px;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px) + var(--viewport-safe-bottom, 0px));
+        width: min(440px, calc(100vw - 28px));
+        z-index: 39;
+        pointer-events: none;
+      }
+
+      .update-toast-card {
+        pointer-events: auto;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 14px;
+        padding: 14px;
+        background: rgba(16, 24, 34, 0.94);
+        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.36);
+        color: #e6e9ef;
+      }
+
+      .update-toast-card h3 {
+        margin: 0;
+      }
+
+      .update-toast-card p {
+        margin: 0;
+      }
+
+      .update-check-desc {
+        margin-top: 8px;
+        color: #d6e6f7;
+      }
+
+      .update-version-grid {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.16);
+        display: grid;
+        gap: 8px;
+      }
+
+      .update-version-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .update-version-label {
+        color: #c3cfdf;
+        font-size: 12px;
+      }
+
+      .update-version-value {
+        color: #f3fbff;
+        font-size: 12px;
+        text-align: right;
+        max-width: 70%;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .update-check-actions {
+        margin-top: 10px;
+      }
+
+      .about-button.update-action-primary {
+        border-color: rgba(77, 214, 201, 0.58);
+        background: rgba(77, 214, 201, 0.2);
+        color: #dffff8;
+      }
+
+      .about-button.update-action-primary:hover {
+        border-color: rgba(103, 227, 216, 0.78);
+        background: rgba(77, 214, 201, 0.3);
+      }
+
+      .about-button.update-action-secondary {
+        border-color: rgba(255, 255, 255, 0.24);
+        background: rgba(16, 24, 34, 0.86);
+        color: #e8f0fb;
+      }
+
+      .about-button.update-action-secondary:hover {
+        border-color: rgba(255, 255, 255, 0.36);
+        background: rgba(24, 36, 52, 0.92);
+      }
+
       [data-theme="light"] .about-card.storage-error-card {
         border-color: rgba(243, 108, 108, 0.42);
         background: rgba(26, 14, 18, 0.84);
@@ -1057,6 +1147,56 @@
         border-color: rgba(243, 108, 108, 0.42);
         background: rgba(26, 14, 18, 0.92);
         color: #e6e9ef;
+      }
+
+      [data-theme="light"] .update-toast-card {
+        border-color: rgba(22, 44, 72, 0.2);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 14px 28px rgba(44, 77, 118, 0.22);
+        color: #1a2a3d;
+      }
+
+      [data-theme="light"] .update-toast-card h3 {
+        color: #1f3d5c;
+      }
+
+      [data-theme="light"] .update-check-desc {
+        color: #4a617b;
+      }
+
+      [data-theme="light"] .update-version-grid {
+        border-color: rgba(22, 44, 72, 0.16);
+        background: rgba(244, 248, 255, 0.92);
+      }
+
+      [data-theme="light"] .update-version-label {
+        color: #5a708b;
+      }
+
+      [data-theme="light"] .update-version-value {
+        color: #1f3a56;
+      }
+
+      [data-theme="light"] .about-button.update-action-primary {
+        border-color: rgba(31, 200, 183, 0.55);
+        background: rgba(31, 200, 183, 0.18);
+        color: #0f625f;
+      }
+
+      [data-theme="light"] .about-button.update-action-primary:hover {
+        border-color: rgba(31, 200, 183, 0.72);
+        background: rgba(31, 200, 183, 0.28);
+      }
+
+      [data-theme="light"] .about-button.update-action-secondary {
+        border-color: rgba(22, 44, 72, 0.24);
+        background: rgba(255, 255, 255, 0.86);
+        color: #1f3957;
+      }
+
+      [data-theme="light"] .about-button.update-action-secondary:hover {
+        border-color: rgba(22, 44, 72, 0.36);
+        background: rgba(244, 248, 255, 0.95);
       }
 
       [data-theme="light"] .about-card.storage-error-card h3,

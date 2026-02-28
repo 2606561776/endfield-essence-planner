@@ -258,6 +258,7 @@
       init("initTutorial");
       init("initRecommendationDisplay");
       init("initModals");
+      init("initUpdate");
       init("initMedia");
       init("initStrategy");
       init("initReforging");
@@ -625,6 +626,12 @@
         requestStorageDataClear: state.requestStorageDataClear,
         cancelStorageDataClear: state.cancelStorageDataClear,
         confirmStorageDataClearAndReload: state.confirmStorageDataClearAndReload,
+        showUpdatePrompt: state.showUpdatePrompt,
+        updateCurrentVersionText: state.updateCurrentVersionText,
+        updateLatestVersionText: state.updateLatestVersionText,
+        updateLatestPublishedAt: state.updateLatestPublishedAt,
+        dismissUpdatePrompt: state.dismissUpdatePrompt,
+        reloadToLatestVersion: state.reloadToLatestVersion,
         skipNotice: state.skipNotice,
         openNotice: state.openNotice,
         openChangelog: state.openChangelog,

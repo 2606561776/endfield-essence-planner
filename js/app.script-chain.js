@@ -20,6 +20,7 @@
     "./js/app.tutorial.js",
     "./js/app.recommendations.display.js",
     "./js/app.modals.js",
+    "./js/app.update.js",
     "./js/app.media.js",
     "./js/app.strategy.js",
     "./js/app.reforging.js",

@@ -32,9 +32,9 @@
     let preloadBackgroundFadeTimer = null;
 
     const allowedAdHosts = new Set([
-      "end.canmoe.com",
-      "127.0.0.1",
-      "localhost",
+    //  "end.canmoe.com",
+    //  "127.0.0.1",
+    //  "localhost",
     ]);
     const providerScriptSrc = "https://cdn.adwork.net/js/makemoney.js";
     const mobileLayoutBreakpoint = 1024;

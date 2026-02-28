@@ -393,7 +393,14 @@ window.I18N["en"] = {
     "（{count}s）": "({count}s)",
     "确认无视错误": "Confirm ignore error",
     "确认后本次会话将不再弹出该异常提醒，继续使用可能导致数据丢失。": "After confirmation, this warning will not appear again in this session. Continuing may cause data loss.",
-    "确认无视错误,继续使用": "Confirm ignore and continue"
+    "确认无视错误,继续使用": "Confirm ignore and continue",
+    "检测到新版本": "New version detected",
+    "检测到站点已有更新，刷新后可使用最新功能与修复。": "A newer site version is available. Refresh to get the latest features and fixes.",
+    "当前版本": "Current version",
+    "最新版本": "Latest version",
+    "发布时间": "Published at",
+    "立即刷新": "Refresh now",
+    "稍后提醒": "Remind me later"
   },
   "terms": {
     "s1": {

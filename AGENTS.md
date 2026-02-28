@@ -10,9 +10,14 @@
 - `fetch`：仅在需要联网验证外部信息时使用。
 
 ## 2. 项目基线与部署
-- 项目是静态站点，无构建步骤，直接发布仓库文件即可。
+- 项目是静态站点，可直接发布仓库文件；为支持“主动更新检测”，建议在部署前执行版本元数据生成脚本。
 - 运行时必须包含 `vendor/vue.global.prod.js`（本地依赖，不依赖 CDN 作为核心运行前提）。
-- 核心数据文件在 `data/`：`data/dungeons.js`、`data/weapons.js`、`data/weapon-images.js`。
+- 核心数据文件在 `data/`：`data/dungeons.js`、`data/weapons.js`、`data/weapon-images.js`、`data/content.js`、`data/version.js`、`data/version.json`。
+- 更新检测模块：`js/app.update.js`（轮询 `data/version.json` 并显示右下角提示）。
+- 版本元数据脚本：`scripts/gen-version.mjs`（从 `index.html` 与 `data/content.js` 生成 `data/version.js/json`）。
+- 部署平台（Cloudflare Pages / ESA Pages）建议配置：
+  - Build command：`node scripts/gen-version.mjs`
+  - Output directory：`.`
 - Cloudflare Worker/Pages 配置以 `wrangler.jsonc` 为准：
   - `compatibility_date: "2025-07-01"`
   - `assets.directory: "."`
@@ -30,7 +35,7 @@
 - `js/bootstrap.entry.js` 是唯一前置入口，负责：
   - preload 主题预应用（`planner-theme-mode:v1` + `prefers-color-scheme`）。
   - preload 动态状态（当前加载项、计数、进度）。
-  - 关键资源加载：`cssFiles` 与 `startupScripts`。
+  - 关键资源加载：`cssFiles` 与 `startupScripts`（含 `./data/version.js`）。
   - 统一错误渲染：`window.__renderBootError(...)`。
   - 不刷新重试：`window.__startBootstrapEntry({ fromRetry: true })`。
 - `js/app.js` 继续加载模块链（`window.__APP_SCRIPT_CHAIN` 或默认清单）。
@@ -51,6 +56,10 @@
   - `startupScripts`
 - 调整 preload 结构文案时：同步检查 `index.html` 与 `js/bootstrap.entry.js` 中的 preload DOM 构造逻辑。
 - 调整官方检测逻辑时：同步更新 `README.md` 对响应头行为的说明。
+- 若更新检测依赖字段有变更（`buildId` / `displayVersion` / `announcementVersion` / `fingerprint` / `publishedAt`）：
+  - 同步更新 `scripts/gen-version.mjs`、`js/app.update.js` 与 `README.md` 字段说明。
+- 调整 `data/content.js` 中 `announcement.version` 后：
+  - 发布前必须重新执行 `node scripts/gen-version.mjs`，确保 `data/version.js/json` 同步。
 
 ## 7. 安全与实现约束
 - 不把不可信输入直接写入 `innerHTML`/`outerHTML`/`document.write`。
@@ -62,8 +71,10 @@
   - `node --check js/bootstrap.entry.js`
   - `node --check js/app.js`
   - `node --check js/app.main.js`
+  - `node --check js/app.update.js`
   - `node --check js/app.embed.js`
   - `node --check js/app.ui.js`
+  - `node --check scripts/gen-version.mjs`
   - `node --check js/templates.plan-config.js`
   - `node --check js/templates.main.01.js`
   - `node --check js/templates.main.02.js`
@@ -73,6 +84,7 @@
   - 断网或拦截关键资源时能进入错误页并可重试恢复。
   - 本地 `?adPreview=1` 有效。
   - 官方 header=1 与非官方部署两种场景行为符合预期。
+  - 保持页面不刷新，更新 `data/version.json` 后可出现右下角“检测到新版本”提示。
 
 ## 9. 快速导航
 - `index.html`：最小页面壳 + bootstrap 入口与兜底。
@@ -81,5 +93,7 @@
 - `js/bootstrap.entry.js`：启动与错误恢复核心。
 - `js/app.js`：模块链加载器。
 - `js/app.main.js`：Vue 应用入口。
+- `js/app.update.js`：主动更新检测与右下角更新提示。
 - `js/app.embed.js`：官方域名/内嵌检测。
 - `js/app.ui.js`：显示、预览与会话关闭状态。
+- `scripts/gen-version.mjs`：生成 `data/version.js/json` 的版本元数据脚本。

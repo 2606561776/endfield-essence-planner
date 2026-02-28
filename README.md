@@ -9,14 +9,28 @@
 - **方案推荐**：基于副本池与锁定规则生成可刷方案，展示锁定策略与可共刷武器列表
 - **冲突提示**：基础属性超出 3 种时提示冲突，并高亮显示
 - **单武器副产物**：单选武器时显示该副本可顺带刷到的其他武器
+- **更新检测提示**：页面长期驻留时会周期检测新版本，并在右下角提示“当前版本 / 最新版本”
 
 ## 运行方式
 
-本项目为 **单文件 Web 应用**，无需构建流程。
+本项目为静态站点，可直接发布仓库文件。运行时无需打包构建产物。
 
 1. 将依赖文件放到 `vendor/` 目录：
    - `vendor/vue.global.prod.js`
 2. 确保武器图片放在 `image/` 目录（图片文件名需与武器名称一致）
+
+## 部署说明（Cloudflare Pages / ESA Pages）
+
+为保证“主动更新检测”可用，建议在平台构建命令中执行版本元数据生成脚本：
+
+- `Build command`：`node scripts/gen-version.mjs`
+- `Output directory`：`.`
+
+说明：
+
+- 无需安装额外第三方依赖（脚本仅使用 Node 内置模块）。
+- 无需把构建命令写入 `wrangler.jsonc`，在平台项目设置中配置即可。
+- 若你是手动本地部署，请先执行一次 `node scripts/gen-version.mjs` 再上传。
 
 ## 数据位置
 
@@ -25,6 +39,23 @@
 - 副本池：`data/dungeons.js`
 - 武器数据：`data/weapons.js`
 - 武器图片清单：`data/weapon-images.js`
+- 公告内容与公告版本号：`data/content.js`（`announcement.version`）
+- 版本元数据（自动生成）：`data/version.js`、`data/version.json`
+
+## 版本元数据说明
+
+`scripts/gen-version.mjs` 会生成 `data/version.js` 与 `data/version.json`，字段含义如下：
+
+- `buildId`：部署唯一标识（用于更新检测比对，推荐每次部署变化）
+- `displayVersion`：用于界面展示的版本文案
+- `announcementVersion`：公告版本号（来源于 `data/content.js` 的 `announcement.version`）
+- `fingerprint`：当前页面资源指纹（来源于 `index.html` 的 `data-fingerprint`）
+- `publishedAt`：发布时间（ISO 时间，前端展示时会转换为设备本地时区）
+
+建议维护方式：
+
+- 日常代码发布：只需确保部署时会执行 `node scripts/gen-version.mjs`
+- 公告更新：手动更新 `data/content.js` 的 `announcement.version`，脚本会自动同步到版本文件
 
 ## 规则说明（简要）
 

@@ -13,6 +13,7 @@
   ];
   var startupScripts = [
     "./vendor/vue.global.prod.js",
+    "./data/version.js",
     "./data/dungeons.js",
     "./data/weapons.js",
     "./data/weapon-images.js",
@@ -1319,6 +1320,7 @@
     var cssPromise = Promise.all(cssFiles.map(loadStyle));
     var vuePromise = loadScript("./vendor/vue.global.prod.js");
     var dataPromise = Promise.all([
+      loadScript("./data/version.js"),
       loadScript("./data/dungeons.js"),
       loadScript("./data/weapons.js"),
       loadScript("./data/weapon-images.js"),

@@ -170,6 +170,10 @@
     state.storageErrorClearTargetKeys = ref([]);
     state.storageFeedbackUrl = "https://github.com/cmyyx/endfield-essence-planner/issues";
     state.pendingStorageIssues = [];
+    state.showUpdatePrompt = ref(false);
+    state.updateCurrentVersionText = ref("");
+    state.updateLatestVersionText = ref("");
+    state.updateLatestPublishedAt = ref("");
 
     state.tutorialVersion = "1.0.0";
     state.tutorialActive = ref(false);
