@@ -27,15 +27,16 @@
     return;
   }
 
-  if (!dungeons.length || !weapons.length) {
+  if (!dungeons.length || !weapons.length || !gears.length) {
     finishPreload();
     showBootError({
       title: "数据文件缺失",
-      summary: "核心数据未加载完成，当前无法生成武器规划。",
+      summary: "核心数据未加载完成，当前无法进入页面。",
       details: [
         `副本数据：${dungeons.length ? "已加载" : "缺失"}`,
         `武器数据：${weapons.length ? "已加载" : "缺失"}`,
-        "请确认 ./data/dungeons.js 与 ./data/weapons.js 可访问",
+        `装备数据：${gears.length ? "已加载" : "缺失"}`,
+        "请确认 ./data/dungeons.js、./data/weapons.js 与 ./data/gears.js 可访问",
       ],
       suggestions: ["检查 data 目录与发布路径", "强制刷新页面后重试"],
     });
@@ -186,6 +187,19 @@
     typeof appTemplates.planConfigControl === "string" && appTemplates.planConfigControl.trim()
       ? appTemplates.planConfigControl.trim()
       : "<div></div>";
+  const gearRefiningListTemplate =
+    typeof appTemplates.gearRefiningList === "string" && appTemplates.gearRefiningList.trim()
+      ? appTemplates.gearRefiningList.trim()
+      : "<div></div>";
+  const gearRefiningDetailTemplate =
+    typeof appTemplates.gearRefiningDetail === "string" && appTemplates.gearRefiningDetail.trim()
+      ? appTemplates.gearRefiningDetail.trim()
+      : "<div></div>";
+  const gearRefiningRecommendationTemplate =
+    typeof appTemplates.gearRefiningRecommendation === "string" &&
+    appTemplates.gearRefiningRecommendation.trim()
+      ? appTemplates.gearRefiningRecommendation.trim()
+      : "<div></div>";
 
   const planConfigControl = {
     props: {
@@ -227,6 +241,56 @@
 </div>`,
   };
 
+  const gearRefiningList = {
+    props: {
+      t: { type: Function, required: true },
+      mobilePanel: { type: String, required: true },
+      query: { type: String, required: true },
+      groupedSets: { type: Array, required: true },
+      selectedGearName: { type: String, default: "" },
+      isSetCollapsed: { type: Function, required: true },
+      toggleSetCollapsed: { type: Function, required: true },
+      selectGear: { type: Function, required: true },
+      hasGearImage: { type: Function, required: true },
+      gearImageSrc: { type: Function, required: true },
+      onGearImageError: { type: Function, required: true },
+    },
+    emits: ["update:query"],
+    template: gearRefiningListTemplate,
+  };
+
+  const gearRefiningRecommendation = {
+    props: {
+      t: { type: Function, required: true },
+      recommendation: { type: Object, required: true },
+      visibleCandidates: { type: Array, required: true },
+      hasMoreCandidates: { type: Boolean, required: true },
+      expanded: { type: Boolean, required: true },
+      toggleExpanded: { type: Function, required: true },
+      hasGearImage: { type: Function, required: true },
+      gearImageSrc: { type: Function, required: true },
+      onGearImageError: { type: Function, required: true },
+    },
+    template: gearRefiningRecommendationTemplate,
+  };
+
+  const gearRefiningDetail = {
+    props: {
+      t: { type: Function, required: true },
+      mobilePanel: { type: String, required: true },
+      selectedGear: { type: Object, default: null },
+      recommendations: { type: Array, required: true },
+      visibleRecommendationCandidates: { type: Function, required: true },
+      hasMoreRecommendationCandidates: { type: Function, required: true },
+      isRecommendationExpanded: { type: Function, required: true },
+      toggleRecommendationExpanded: { type: Function, required: true },
+      hasGearImage: { type: Function, required: true },
+      gearImageSrc: { type: Function, required: true },
+      onGearImageError: { type: Function, required: true },
+    },
+    template: gearRefiningDetailTemplate,
+  };
+
   const app = createApp({
     template: mainAppTemplate,
     setup() {
@@ -261,7 +325,7 @@
       init("initUpdate");
       init("initMedia");
       init("initStrategy");
-      init("initReforging");
+      init("initGearRefining");
 
       const weaponCatalog =
         typeof window !== "undefined" && Array.isArray(window.WEAPONS) ? window.WEAPONS : [];
@@ -296,8 +360,8 @@
         if (view === "strategy") {
           return { view: "strategy", characterId, weaponNames, hasWeaponParam };
         }
-        if (view === "reforging") {
-          return { view: "reforging", weaponNames, hasWeaponParam };
+        if (view === "gear-refining") {
+          return { view: "gear-refining", weaponNames, hasWeaponParam };
         }
         if (view === "match") {
           return { view: "match" };
@@ -349,13 +413,21 @@
           if (id) return `/strategy/${encodeURIComponent(id)}`;
           return "/strategy";
         }
-        if (view === "reforging") {
-          return "/reforging";
+        if (view === "gear-refining") {
+          return "/gear-refining";
         }
         if (view === "match") {
           return "/match";
         }
         return "/planner";
+      };
+
+      const legacyScrollbarHiddenViews = new Set(["planner", "match", "strategy", "gear-refining"]);
+      const syncLegacyScrollbarMode = () => {
+        if (typeof document === "undefined" || !document.documentElement) return;
+        const root = document.documentElement;
+        const currentView = String(state.currentView.value || "planner");
+        root.classList.toggle("legacy-scrollbar-hidden", legacyScrollbarHiddenViews.has(currentView));
       };
 
       const buildAnalyticsUrl = () => {
@@ -415,20 +487,33 @@
         return nextUrl;
       };
 
+      const onPopState = () => {
+        applyRoute(parseRoute());
+        syncLegacyScrollbarMode();
+        trackPageview();
+      };
+
       onMounted(() => {
         const route = parseRoute();
         applyRoute(route);
+        syncLegacyScrollbarMode();
         syncQuery(true);
         trackPageview();
         if (typeof window !== "undefined") {
-          window.addEventListener("popstate", () => {
-            applyRoute(parseRoute());
-            trackPageview();
-          });
+          window.addEventListener("popstate", onPopState);
         }
       });
 
+      onBeforeUnmount(() => {
+        if (typeof window !== "undefined") {
+          window.removeEventListener("popstate", onPopState);
+        }
+        if (typeof document === "undefined" || !document.documentElement) return;
+        document.documentElement.classList.remove("legacy-scrollbar-hidden");
+      });
+
       watch([state.currentView, state.selectedCharacterId], () => {
+        syncLegacyScrollbarMode();
         syncQuery(false);
         trackPageview();
       });
@@ -442,9 +527,150 @@
         { deep: true }
       );
 
+      const parseExceptionTime = (value) => {
+        const time = Date.parse(String(value || ""));
+        return Number.isFinite(time) ? time : 0;
+      };
+      const toExceptionKey = (entry, kind) => {
+        if (!entry || typeof entry !== "object") return `${kind}:unknown`;
+        if (entry.id) return `${kind}:${entry.id}`;
+        return [
+          kind,
+          entry.occurredAt || "",
+          entry.operation || "",
+          entry.key || "",
+          entry.errorName || "",
+          entry.errorMessage || "",
+        ].join("|");
+      };
+      const unifiedExceptionCurrent = computed(() => {
+        const storageShown = Boolean(state.showStorageErrorModal && state.showStorageErrorModal.value);
+        const runtimeShown = Boolean(state.showRuntimeWarningModal && state.showRuntimeWarningModal.value);
+        const storageCurrent = state.storageErrorCurrent ? state.storageErrorCurrent.value : null;
+        const runtimeCurrent = state.runtimeWarningCurrent ? state.runtimeWarningCurrent.value : null;
+        if (!storageShown && !runtimeShown) return null;
+        if (storageShown && !runtimeShown) {
+          return storageCurrent ? { ...storageCurrent, __kind: "storage" } : null;
+        }
+        if (!storageShown && runtimeShown) {
+          return runtimeCurrent ? { ...runtimeCurrent, __kind: "runtime" } : null;
+        }
+        const storageTime = parseExceptionTime(storageCurrent && storageCurrent.occurredAt);
+        const runtimeTime = parseExceptionTime(runtimeCurrent && runtimeCurrent.occurredAt);
+        if (runtimeTime >= storageTime) {
+          return runtimeCurrent
+            ? { ...runtimeCurrent, __kind: "runtime" }
+            : storageCurrent
+            ? { ...storageCurrent, __kind: "storage" }
+            : null;
+        }
+        return storageCurrent
+          ? { ...storageCurrent, __kind: "storage" }
+          : runtimeCurrent
+          ? { ...runtimeCurrent, __kind: "runtime" }
+          : null;
+      });
+      const activeUnifiedExceptionKind = computed(() => {
+        const current = unifiedExceptionCurrent.value;
+        return current && current.__kind === "runtime" ? "runtime" : "storage";
+      });
+      const showUnifiedExceptionModal = computed(() =>
+        Boolean(
+          (state.showStorageErrorModal && state.showStorageErrorModal.value) ||
+            (state.showRuntimeWarningModal && state.showRuntimeWarningModal.value)
+        )
+      );
+      const unifiedExceptionLogs = computed(() => {
+        const runtimeLogs =
+          state.runtimeWarningLogs && Array.isArray(state.runtimeWarningLogs.value)
+            ? state.runtimeWarningLogs.value
+            : [];
+        const storageLogs =
+          state.storageErrorLogs && Array.isArray(state.storageErrorLogs.value)
+            ? state.storageErrorLogs.value
+            : [];
+        const merged = [];
+        runtimeLogs.forEach((entry) => {
+          if (!entry || typeof entry !== "object") return;
+          merged.push({ ...entry, __kind: "runtime" });
+        });
+        storageLogs.forEach((entry) => {
+          if (!entry || typeof entry !== "object") return;
+          merged.push({ ...entry, __kind: "storage" });
+        });
+        const storageCurrent = state.storageErrorCurrent ? state.storageErrorCurrent.value : null;
+        const runtimeCurrent = state.runtimeWarningCurrent ? state.runtimeWarningCurrent.value : null;
+        if (runtimeCurrent && typeof runtimeCurrent === "object") {
+          merged.push({ ...runtimeCurrent, __kind: "runtime" });
+        }
+        if (storageCurrent && typeof storageCurrent === "object") {
+          merged.push({ ...storageCurrent, __kind: "storage" });
+        }
+        const dedup = new Map();
+        merged.forEach((entry) => {
+          const key = toExceptionKey(entry, entry.__kind || "storage");
+          if (!dedup.has(key)) {
+            dedup.set(key, entry);
+          }
+        });
+        return Array.from(dedup.values())
+          .sort((a, b) => parseExceptionTime(b.occurredAt) - parseExceptionTime(a.occurredAt))
+          .slice(0, 20);
+      });
+      const unifiedExceptionPreviewText = computed(() => {
+        const current = unifiedExceptionCurrent.value;
+        if (!current) return "";
+        if (current.__kind === "runtime") {
+          return state.runtimeWarningPreviewText ? state.runtimeWarningPreviewText.value || "" : "";
+        }
+        return state.storageErrorPreviewText ? state.storageErrorPreviewText.value || "" : "";
+      });
+      const exportUnifiedExceptionDiagnostic = () => {
+        if (
+          activeUnifiedExceptionKind.value === "runtime" &&
+          typeof state.exportRuntimeDiagnosticBundle === "function"
+        ) {
+          state.exportRuntimeDiagnosticBundle();
+          return;
+        }
+        if (typeof state.exportStorageDiagnosticBundle === "function") {
+          state.exportStorageDiagnosticBundle();
+        }
+      };
+      const refreshUnifiedException = () => {
+        if (
+          activeUnifiedExceptionKind.value === "runtime" &&
+          typeof state.reloadBypassCache === "function"
+        ) {
+          state.reloadBypassCache();
+          return;
+        }
+        if (typeof state.requestStorageDataClear === "function") {
+          state.requestStorageDataClear();
+        }
+      };
+      const ignoreUnifiedException = () => {
+        if (
+          activeUnifiedExceptionKind.value === "runtime" &&
+          typeof state.requestIgnoreRuntimeWarnings === "function"
+        ) {
+          state.requestIgnoreRuntimeWarnings();
+          return;
+        }
+        if (typeof state.requestIgnoreStorageErrors === "function") {
+          state.requestIgnoreStorageErrors();
+        }
+      };
+
       return {
         currentView: state.currentView,
         setView: (view) => {
+          if (
+            view === "gear-refining" &&
+            typeof state.markGearRefiningNavHintSeen === "function"
+          ) {
+            state.markGearRefiningNavHintSeen();
+          }
           state.currentView.value = view;
           window.scrollTo(0, 0);
         },
@@ -487,6 +713,7 @@
         showAllSchemes: state.showAllSchemes,
         showPlanConfig: state.showPlanConfig,
         showPlanConfigHintDot: state.showPlanConfigHintDot,
+        showGearRefiningNavHintDot: state.showGearRefiningNavHintDot,
         togglePlanConfig: state.togglePlanConfig,
         recommendationConfig: state.recommendationConfig,
         regionOptions: state.regionOptions,
@@ -578,6 +805,25 @@
         matchSourceWeapon: state.matchSourceWeapon,
         matchResults: state.matchResults,
         selectMatchSource: state.selectMatchSource,
+        gearRefiningMobilePanel: state.gearRefiningMobilePanel,
+        isGearRefiningCompact: state.isGearRefiningCompact,
+        setGearRefiningMobilePanel: state.setGearRefiningMobilePanel,
+        gearRefiningQuery: state.gearRefiningQuery,
+        gearRefiningGearCount: state.gearRefiningGearCount,
+        isGearRefiningSetCollapsed: state.isGearRefiningSetCollapsed,
+        toggleGearRefiningSetCollapsed: state.toggleGearRefiningSetCollapsed,
+        isRecommendationExpanded: state.isRecommendationExpanded,
+        toggleRecommendationExpanded: state.toggleRecommendationExpanded,
+        hasMoreRecommendationCandidates: state.hasMoreRecommendationCandidates,
+        visibleRecommendationCandidates: state.visibleRecommendationCandidates,
+        gearRefiningGroupedSets: state.gearRefiningGroupedSets,
+        selectedGearRefiningGearName: state.selectedGearRefiningGearName,
+        selectedGearRefiningGear: state.selectedGearRefiningGear,
+        selectGearRefiningGear: state.selectGearRefiningGear,
+        gearRefiningRecommendations: state.gearRefiningRecommendations,
+        gearRefiningGearImageSrc: state.gearRefiningGearImageSrc,
+        hasGearRefiningGearImage: state.hasGearRefiningGearImage,
+        handleGearRefiningGearImageError: state.handleGearRefiningGearImageError,
         hasImage: state.hasImage,
         weaponImageSrc: state.weaponImageSrc,
         weaponCharacters: state.weaponCharacters,
@@ -610,14 +856,34 @@
         closeMigrationConfirm: state.closeMigrationConfirm,
         confirmMigrationAction: state.confirmMigrationAction,
         showStorageErrorModal: state.showStorageErrorModal,
+        showRuntimeWarningModal: state.showRuntimeWarningModal,
+        showRuntimeIgnoreConfirmModal: state.showRuntimeIgnoreConfirmModal,
         showStorageClearConfirmModal: state.showStorageClearConfirmModal,
         showStorageIgnoreConfirmModal: state.showStorageIgnoreConfirmModal,
         storageErrorCurrent: state.storageErrorCurrent,
         storageErrorLogs: state.storageErrorLogs,
         storageErrorPreviewText: state.storageErrorPreviewText,
+        runtimeWarningCurrent: state.runtimeWarningCurrent,
+        runtimeWarningLogs: state.runtimeWarningLogs,
+        runtimeWarningPreviewText: state.runtimeWarningPreviewText,
         storageErrorClearCountdown: state.storageErrorClearCountdown,
         storageErrorClearTargetKeys: state.storageErrorClearTargetKeys,
         storageFeedbackUrl: state.storageFeedbackUrl,
+        dismissRuntimeWarning: state.dismissRuntimeWarning,
+        ignoreRuntimeWarnings: state.ignoreRuntimeWarnings,
+        requestIgnoreRuntimeWarnings: state.requestIgnoreRuntimeWarnings,
+        cancelIgnoreRuntimeWarnings: state.cancelIgnoreRuntimeWarnings,
+        confirmIgnoreRuntimeWarnings: state.confirmIgnoreRuntimeWarnings,
+        reloadBypassCache: state.reloadBypassCache,
+        exportRuntimeDiagnosticBundle: state.exportRuntimeDiagnosticBundle,
+        showUnifiedExceptionModal,
+        unifiedExceptionCurrent,
+        activeUnifiedExceptionKind,
+        unifiedExceptionLogs,
+        unifiedExceptionPreviewText,
+        exportUnifiedExceptionDiagnostic,
+        refreshUnifiedException,
+        ignoreUnifiedException,
         ignoreStorageErrors: state.ignoreStorageErrors,
         requestIgnoreStorageErrors: state.requestIgnoreStorageErrors,
         cancelIgnoreStorageErrors: state.cancelIgnoreStorageErrors,
@@ -693,6 +959,9 @@
 
   app.component("PlanConfigControl", planConfigControl);
   app.component("MatchStatusLine", matchStatusLine);
+  app.component("GearRefiningList", gearRefiningList);
+  app.component("GearRefiningDetail", gearRefiningDetail);
+  app.component("GearRefiningRecommendation", gearRefiningRecommendation);
   app.directive("lazy-src", lazyImageDirective);
   app.mount("#app");
 })();

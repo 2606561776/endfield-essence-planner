@@ -52,6 +52,15 @@
       return `${text.slice(0, head)}...${text.slice(-tail)}`;
     };
 
+    const extractBuildTimeToken = (value) => {
+      const text = safeText(value);
+      if (!text) return "";
+      const match = text.match(/(\d{14})/);
+      if (match) return safeText(match[1]);
+      const fallback = text.replace(/\s+/g, "");
+      return fallback || "";
+    };
+
     const buildDisplayText = (info) => {
       if (!info) return "";
       const displayVersion = safeText(info.displayVersion);
@@ -78,8 +87,9 @@
         fingerprint: safeText(raw.fingerprint || ""),
         publishedAt: safeText(raw.publishedAt || raw.builtAt || ""),
       };
+      info.buildTimeToken = extractBuildTimeToken(info.buildId);
       const signature =
-        info.buildId ||
+        info.buildTimeToken ||
         [
           info.fingerprint,
           info.announcementVersion,

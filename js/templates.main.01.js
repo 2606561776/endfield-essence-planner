@@ -192,9 +192,14 @@
           </button>
           <button 
             class="nav-item" 
-            :class="{ active: currentView === 'reforging' }" 
-            @click="setView('reforging')"
+            :class="{ active: currentView === 'gear-refining' }" 
+            @click="setView('gear-refining')"
           >
+            <span
+              v-if="showGearRefiningNavHintDot"
+              class="nav-hint-dot"
+              aria-hidden="true"
+            ></span>
             {{ t("装备精锻") }}
           </button>
           </nav>
