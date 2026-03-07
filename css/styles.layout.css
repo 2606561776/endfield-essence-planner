@@ -15,6 +15,7 @@
       }
 
       html {
+        --app-safe-top-inset: env(safe-area-inset-top, 0px);
         scrollbar-gutter: auto;
       }
 
@@ -305,7 +306,7 @@
       @media (max-width: 1024px) {
         .mobile-tabs {
           display: flex;
-          top: 48px;
+          top: calc(48px + var(--app-safe-top-inset, 0px));
         }
 
         .mobile-hint {

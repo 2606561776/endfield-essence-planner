@@ -48,7 +48,7 @@
     if (normalized === "allow" || normalized === "warn" || normalized === "throw") {
       return normalized;
     }
-    return runtimeEnv === "production" ? "warn" : "allow";
+    return "warn";
   };
 
   var runtimeEnv = resolveRuntimeEnv();
@@ -97,7 +97,7 @@
         `[app-protocol] legacy protocol "${legacyName}" access is blocked in ${runtimeEnv} mode`
       );
     }
-    if (legacyAccessMode === "warn" || runtimeEnv === "production") {
+    if (legacyAccessMode === "warn") {
       warnLegacyAccess(legacyName, protocolName);
     }
   };

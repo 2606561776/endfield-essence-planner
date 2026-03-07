@@ -351,6 +351,15 @@
       declaredAppScriptChain.forEach(function (src) {
         ensureResource(src, "script");
       });
+      Object.keys(optionalScriptConfigs).forEach(function (src) {
+        ensureResource(src, "script", {
+          optional: true,
+          featureKey:
+            optionalScriptConfigs[src] && optionalScriptConfigs[src].featureKey
+              ? String(optionalScriptConfigs[src].featureKey)
+              : "",
+        });
+      });
       renderProgress();
 
       if (document.readyState === "loading") {

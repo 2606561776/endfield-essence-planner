@@ -105,7 +105,7 @@
 
         .mobile-tabs {
           margin-bottom: 10px;
-          top: 54px;
+          top: calc(54px + var(--app-safe-top-inset, 0px));
         }
 
         .mobile-tab {

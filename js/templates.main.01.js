@@ -308,6 +308,20 @@
               {{ t("button.clear_attribute_filters") }}
             </button>
           </div>
+          <transition name="fade-scale">
+            <div v-if="showAttrHint" class="attr-hint attr-hint-inline">
+              <span class="attr-hint-text">
+                {{
+                  t("button.tip_click_label_to_toggle_attribute_and_ownership_displa", {
+                    label: t("nav.show_attributes_ownership_notes")
+                  })
+                }}
+              </span>
+              <button class="ghost-button attr-hint-dismiss" @click="dismissAttrHint">
+                {{ t("button.got_it") }}
+              </button>
+            </div>
+          </transition>
           <div v-if="hasPreviewWeapons" class="attr-hint weapon-attr-warning">
             <span class="attr-hint-text weapon-attr-warning-text">
               {{ t("error.weapon_attribute_data_preview_detected") }}
@@ -324,20 +338,6 @@
               {{ t("button.view_data_exception_details") }}
             </button>
           </div>
-          <transition name="fade-scale">
-            <div v-if="showAttrHint" class="attr-hint">
-              <span class="attr-hint-text">
-                {{
-                  t("button.tip_click_label_to_toggle_attribute_and_ownership_displa", {
-                    label: t("nav.show_attributes_ownership_notes")
-                  })
-                }}
-              </span>
-              <button class="ghost-button attr-hint-dismiss" @click="dismissAttrHint">
-                {{ t("button.got_it") }}
-              </button>
-            </div>
-          </transition>
           <div class="filter-panel" :class="{ 'is-collapsed': !showFilterPanel }">
             <div class="filter-group">
               <div class="filter-title">{{ t("nav.base_attributes") }}</div>

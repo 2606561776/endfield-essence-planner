@@ -2,7 +2,7 @@ window.CONTENT = {
   gameCompat: {
     supportedVersion: "1.0",
     nextVersion: "1.1",
-    nextVersionAt: "2026-03-12T04:00:00Z",
+    nextVersionAt: "2026-03-12T00:00:00Z",
   },
   announcement: {
     version: "1.6.0",
@@ -20,6 +20,13 @@ window.CONTENT = {
   changelog: {
     title: "nav.changelog",
     entries: [
+      {
+        date: "2026-03-07",
+        items: [
+          "修复部分浏览器版本显示会和其他控件重叠",
+          "调整一个按钮位置",
+        ],
+      },
       {
         date: "2026-03-03~03-06",
         items: [

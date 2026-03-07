@@ -1,8 +1,27 @@
 (function () {
 
+  const readBootProtocol = (protocolName) => {
+    if (typeof window === "undefined") return undefined;
+    const appBoot = window.__APP_BOOT__;
+    if (!appBoot || typeof appBoot.readProtocol !== "function") {
+      return undefined;
+    }
+    return appBoot.readProtocol(protocolName);
+  };
+
+  const publishBootProtocol = (protocolName, value) => {
+    if (typeof window === "undefined") return value;
+    const appBoot = window.__APP_BOOT__;
+    if (appBoot && typeof appBoot.publishProtocol === "function") {
+      appBoot.publishProtocol(protocolName, value);
+    }
+    return value;
+  };
+
   const renderBootError = (payload) => {
-    if (typeof window !== "undefined" && typeof window.__renderBootError === "function") {
-      window.__renderBootError(payload);
+    const renderError = readBootProtocol("renderBootError");
+    if (typeof renderError === "function") {
+      renderError(payload);
       return;
     }
     const fallback = document.createElement("div");
@@ -12,26 +31,22 @@
     document.body.appendChild(fallback);
   };
 
-  const loadScript =
-    (typeof window !== "undefined" && window.__loadScript) ||
-    ((src) =>
-      new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = src;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("Failed to load: " + src));
-        document.body.appendChild(script);
-      }));
+  const fallbackLoadScript = (src) =>
+    new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load: " + src));
+      document.body.appendChild(script);
+    });
 
-  if (typeof window !== "undefined" && !window.__loadScript) {
-    window.__loadScript = loadScript;
-  }
+  const loadScript = readBootProtocol("loadScript") || publishBootProtocol("loadScript", fallbackLoadScript);
+  const appScriptChain = readBootProtocol("appScriptChain");
 
   const scripts =
-    typeof window !== "undefined" &&
-    Array.isArray(window.__APP_SCRIPT_CHAIN) &&
-    window.__APP_SCRIPT_CHAIN.length
-      ? window.__APP_SCRIPT_CHAIN
+    Array.isArray(appScriptChain) &&
+    appScriptChain.length
+      ? appScriptChain
       : [];
 
   if (!scripts.length) {

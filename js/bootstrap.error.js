@@ -1,6 +1,26 @@
 (function (globalObject) {
+  var readBootProtocol = function (protocolName) {
+    var appBoot = globalObject && globalObject.__APP_BOOT__;
+    if (!appBoot || typeof appBoot.readProtocol !== "function") {
+      return undefined;
+    }
+    return appBoot.readProtocol(protocolName);
+  };
+
+  var publishBootProtocol = function (protocolName, legacyName, value) {
+    var appBoot = globalObject && globalObject.__APP_BOOT__;
+    if (appBoot && typeof appBoot.publishProtocol === "function") {
+      appBoot.publishProtocol(protocolName, value);
+    }
+    if (legacyName) {
+      globalObject[legacyName] = value;
+    }
+    return value;
+  };
+
   var ensureErrorRenderer = function (options) {
-    if (typeof window.__renderBootError === "function") return;
+    var existingRenderer = readBootProtocol("renderBootError");
+    if (typeof existingRenderer === "function") return existingRenderer;
     var root = options && options.root ? options.root : document.documentElement;
     var bt = options && typeof options.bt === "function" ? options.bt : function (key) { return key; };
 
@@ -17,12 +37,12 @@
       }
     };
 
-    window.__renderBootError = function renderBootError(payload) {
+    var renderBootError = function renderBootError(payload) {
       if (!document.body) {
         document.addEventListener(
           "DOMContentLoaded",
           function () {
-            window.__renderBootError(payload);
+            renderBootError(payload);
           },
           { once: true }
         );
@@ -142,6 +162,9 @@
       page.appendChild(card);
       document.body.appendChild(page);
     };
+
+    window.__renderBootError = renderBootError;
+    return publishBootProtocol("renderBootError", "__renderBootError", renderBootError);
   };
 
   var ensureLoadErrorReporter = function (options) {
@@ -154,10 +177,11 @@
       options && typeof options.explainHttpStatus === "function"
         ? options.explainHttpStatus
         : function () { return ""; };
+    var renderBootError = ensureErrorRenderer(options) || readBootProtocol("renderBootError");
 
     if (typeof window.__reportScriptChainMissing !== "function") {
       window.__reportScriptChainMissing = function reportScriptChainMissing() {
-        window.__renderBootError({
+        renderBootError({
           title: bt("error_title_resource"),
           summary: bt("error_summary_script_chain_missing"),
           details: [bt("error_detail_missing_chain"), bt("error_detail_confirm_chain")],
@@ -184,7 +208,7 @@
           );
         }
         details.push(bt("error_hint_flaky"));
-        window.__renderBootError({
+        renderBootError({
           title: bt("error_title_resource"),
           summary: resolveResourceSummary(status, "error_summary_core_script"),
           details: details,
@@ -195,6 +219,7 @@
   };
 
   var handleBootFailure = function (options) {
+    var renderBootError = ensureErrorRenderer(options) || readBootProtocol("renderBootError");
     var bt = options && typeof options.bt === "function" ? options.bt : function (key) { return key; };
     var resolveResourceSummary =
       options && typeof options.resolveResourceSummary === "function"
@@ -221,7 +246,7 @@
     }
 
     if (resourceMeta && resourceMeta.kind === "startup-stall") {
-      window.__renderBootError({
+      renderBootError({
         title: bt("error_title_resource"),
         summary: bt("error_summary_core_resource"),
         details: [
@@ -258,7 +283,7 @@
           })
         );
       }
-      window.__renderBootError({
+      renderBootError({
         title: bt("error_title_style"),
         summary: resolveResourceSummary(status, "error_summary_style"),
         details: cssDetails,
@@ -283,7 +308,7 @@
         })
       );
     }
-    window.__renderBootError({
+    renderBootError({
       title: bt("error_title_resource"),
       summary: resolveResourceSummary(status, "error_summary_core_resource"),
       details: scriptDetails,

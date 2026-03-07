@@ -1127,8 +1127,9 @@
           errorMessage: message,
           optionalSignature: "bootstrap.load-helper-modules",
         });
-        if (typeof window.__renderBootError === "function") {
-          window.__renderBootError({
+        var renderBootError = resolveBootProtocolValue("renderBootError");
+        if (typeof renderBootError === "function") {
+          renderBootError({
             title: bt("error_title_resource"),
             summary: bt("error_summary_core_resource"),
             details: [message],

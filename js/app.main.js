@@ -1,9 +1,19 @@
 (function () {
   const { createApp, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } = Vue || {};
 
+  const readBootProtocol = (protocolName) => {
+    if (typeof window === "undefined") return undefined;
+    const appBoot = window.__APP_BOOT__;
+    if (!appBoot || typeof appBoot.readProtocol !== "function") {
+      return undefined;
+    }
+    return appBoot.readProtocol(protocolName);
+  };
+
   const showBootError = (payload) => {
-    if (typeof window !== "undefined" && typeof window.__renderBootError === "function") {
-      window.__renderBootError(payload);
+    const renderError = readBootProtocol("renderBootError");
+    if (typeof renderError === "function") {
+      renderError(payload);
       return;
     }
     const fallback = document.createElement("div");
