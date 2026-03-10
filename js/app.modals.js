@@ -112,18 +112,19 @@
         if (scrollLockActive) return;
         scrollLockActive = true;
         scrollLockY = window.scrollY || window.pageYOffset || 0;
-        const scrollbarGap = window.innerWidth - root.clientWidth;
-        if (scrollbarGap > 0 && !supportsStableGutter) {
-          body.style.paddingRight = `${scrollbarGap}px`;
-        }
+        root.classList.add("modal-open");
+        body.classList.add("modal-open");
+        const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
+        root.style.setProperty(
+          "--modal-scrollbar-gap",
+          scrollbarGap > 0 && !supportsStableGutter ? `${scrollbarGap}px` : "0px"
+        );
         body.style.position = "fixed";
         body.style.top = `-${scrollLockY}px`;
         body.style.left = "0";
         body.style.right = "0";
         body.style.width = "100%";
         body.style.overflow = "hidden";
-        root.classList.add("modal-open");
-        body.classList.add("modal-open");
         return;
       }
       if (!scrollLockActive) return;
@@ -134,7 +135,7 @@
       body.style.right = "";
       body.style.width = "";
       body.style.overflow = "";
-      body.style.paddingRight = "";
+      root.style.removeProperty("--modal-scrollbar-gap");
       root.classList.remove("modal-open");
       body.classList.remove("modal-open");
       if (scrollLockY) {
@@ -150,7 +151,8 @@
           state.showTutorialSkipConfirm.value ||
           state.showStorageErrorModal.value ||
           state.showStorageClearConfirmModal.value ||
-          state.showStorageIgnoreConfirmModal.value
+          state.showStorageIgnoreConfirmModal.value ||
+          (state.showMarksImportConfirmModal && state.showMarksImportConfirmModal.value)
       );
 
     const clearStaleLockCheck = () => {
@@ -230,6 +232,7 @@
         state.showStorageErrorModal,
         state.showStorageClearConfirmModal,
         state.showStorageIgnoreConfirmModal,
+        state.showMarksImportConfirmModal,
       ],
       ([
         noticeOpen,
@@ -239,6 +242,7 @@
         storageErrorOpen,
         storageClearConfirmOpen,
         storageIgnoreConfirmOpen,
+        marksImportConfirmOpen,
       ]) => {
         const hasOpenModal = Boolean(
           noticeOpen ||
@@ -247,7 +251,8 @@
             skipOpen ||
             storageErrorOpen ||
             storageClearConfirmOpen ||
-            storageIgnoreConfirmOpen
+            storageIgnoreConfirmOpen ||
+            marksImportConfirmOpen
         );
         if (modalUnlockTimer) {
           clearTimeout(modalUnlockTimer);
@@ -275,6 +280,7 @@
         state.showStorageErrorModal,
         state.showStorageClearConfirmModal,
         state.showStorageIgnoreConfirmModal,
+        state.showMarksImportConfirmModal,
       ],
       () => {
         if (typeof state.maybeAutoStartTutorial === "function") {
