@@ -1453,7 +1453,9 @@
       .fade-scale-enter-active.about-overlay.changelog-overlay,
       .fade-scale-leave-active.about-overlay.changelog-overlay,
       .fade-scale-enter-active.about-overlay.about-overlay-main,
-      .fade-scale-leave-active.about-overlay.about-overlay-main {
+      .fade-scale-leave-active.about-overlay.about-overlay-main,
+      .fade-scale-enter-active.about-overlay.faq-overlay,
+      .fade-scale-leave-active.about-overlay.faq-overlay {
         transition: opacity 0.28s ease, padding-bottom 0.22s ease;
       }
 
@@ -1467,12 +1469,16 @@
       }
 
       .fade-scale-enter-active .about-card,
-      .fade-scale-leave-active .about-card {
+      .fade-scale-leave-active .about-card,
+      .fade-scale-enter-active .faq-card,
+      .fade-scale-leave-active .faq-card {
         transition: transform 0.28s ease, opacity 0.28s ease;
       }
 
       .fade-scale-enter-from .about-card,
-      .fade-scale-leave-to .about-card {
+      .fade-scale-leave-to .about-card,
+      .fade-scale-enter-from .faq-card,
+      .fade-scale-leave-to .faq-card {
         transform: translateY(10px) scale(0.975);
         opacity: 0;
       }

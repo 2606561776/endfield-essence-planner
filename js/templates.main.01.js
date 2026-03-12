@@ -54,6 +54,7 @@
           </div>
           <button class="about-button notice-button" @click="openNotice">{{ t("nav.announcement") }}</button>
           <button class="about-button" @click="openChangelog">{{ t("nav.changelog") }}</button>
+          <button class="about-button" @click="openFaq">FAQ</button>
           <button class="about-button" @click="openAbout">{{ t("nav.about") }}</button>
           <div class="secondary-menu">
             <button class="about-button menu-toggle" @click="showSecondaryMenu = !showSecondaryMenu">

@@ -2,9 +2,12 @@
   const modules = (window.AppModules = window.AppModules || {});
 
   modules.initModals = function initModals(ctx, state) {
-    const { watch, onMounted, onBeforeUnmount } = ctx;
+    const { watch, onMounted, onBeforeUnmount, ref } = ctx;
     const modalTransitionMs = 280;
     let modalUnlockTimer = null;
+    if (!state.showFaq) {
+      state.showFaq = typeof ref === "function" ? ref(false) : { value: false };
+    }
     const reportStorageIssue = (operation, key, error, meta) => {
       if (typeof state.reportStorageIssue === "function") {
         state.reportStorageIssue(operation, key, error, meta);
@@ -80,6 +83,11 @@
       await ensureModalContent(true);
     };
 
+    const openFaq = async () => {
+      state.showFaq.value = true;
+      await ensureModalContent(false);
+    };
+
     const closeNotice = () => {
       state.showNotice.value = false;
       const currentVersion = (state.announcement.value || {}).version;
@@ -148,6 +156,7 @@
         state.showNotice.value ||
           state.showChangelog.value ||
         state.showAbout.value ||
+        state.showFaq.value ||
           state.showTutorialSkipConfirm.value ||
           state.showStorageErrorModal.value ||
           state.showStorageClearConfirmModal.value ||
@@ -228,6 +237,7 @@
         state.showNotice,
         state.showChangelog,
         state.showAbout,
+        state.showFaq,
         state.showTutorialSkipConfirm,
         state.showStorageErrorModal,
         state.showStorageClearConfirmModal,
@@ -238,6 +248,7 @@
         noticeOpen,
         changelogOpen,
         aboutOpen,
+        faqOpen,
         skipOpen,
         storageErrorOpen,
         storageClearConfirmOpen,
@@ -248,6 +259,7 @@
           noticeOpen ||
             changelogOpen ||
             aboutOpen ||
+            faqOpen ||
             skipOpen ||
             storageErrorOpen ||
             storageClearConfirmOpen ||
@@ -276,6 +288,7 @@
         state.showNotice,
         state.showChangelog,
         state.showAbout,
+        state.showFaq,
         state.showDomainWarning,
         state.showStorageErrorModal,
         state.showStorageClearConfirmModal,
@@ -305,6 +318,7 @@
     state.openNotice = openNotice;
     state.openChangelog = openChangelog;
     state.openAbout = openAbout;
+    state.openFaq = openFaq;
     state.closeNotice = closeNotice;
   };
 })();

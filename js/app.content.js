@@ -89,6 +89,27 @@
         .filter(Boolean);
     };
 
+    const normalizeFaqItems = (items) => {
+      if (!Array.isArray(items)) return [];
+      return items
+        .map((entry) => {
+          if (!entry) return null;
+          if (typeof entry === "string") {
+            const question = entry.trim();
+            return question ? { q: question, a: "" } : null;
+          }
+          if (typeof entry !== "object") return null;
+          const question = String(entry.q || entry.question || entry.title || "").trim();
+          const answerRaw = entry.a ?? entry.answer ?? entry.body ?? "";
+          const answer = Array.isArray(answerRaw)
+            ? answerRaw.map((line) => String(line || "").trim()).filter(Boolean).join("\n")
+            : String(answerRaw || "").trim();
+          if (!question && !answer) return null;
+          return { q: question, a: answer };
+        })
+        .filter((entry) => entry && entry.q);
+    };
+
     const noticeSanitizer =
       typeof window !== "undefined" &&
       window.__APP_SANITIZER__ &&
@@ -104,6 +125,7 @@
         announcement: content.announcement || {},
         changelog: content.changelog || {},
         about: content.about || {},
+        faq: content.faq || {},
       };
       if (!content.locales || targetLocale === fallbackLocale) return base;
       const localized = content.locales[targetLocale] || {};
@@ -111,6 +133,7 @@
         announcement: { ...base.announcement, ...(localized.announcement || {}) },
         changelog: { ...base.changelog, ...(localized.changelog || {}) },
         about: { ...base.about, ...(localized.about || {}) },
+        faq: { ...base.faq, ...(localized.faq || {}) },
       };
     };
     const i18nKeyPattern = /^[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)+$/;
@@ -176,11 +199,34 @@
       return base;
     });
 
+    const defaultFaq = computed(() => ({
+      title: "常见问题",
+      emptyText: "暂无常见问题",
+      items: [],
+    }));
+    const faqContent = computed(() => {
+      const next = {
+        ...defaultFaq.value,
+        ...(localizedContent.value.faq || {}),
+      };
+      next.title =
+        typeof next.title === "string" && next.title.trim() ? next.title.trim() : defaultFaq.value.title;
+      next.emptyText =
+        typeof next.emptyText === "string" && next.emptyText.trim()
+          ? next.emptyText.trim()
+          : defaultFaq.value.emptyText;
+      next.items = Array.isArray(next.items) ? next.items : [];
+      return next;
+    });
+    const faqItems = computed(() => normalizeFaqItems(faqContent.value.items));
+
     state.content = computed(() => getContentRoot());
     state.ensureContentLoaded = ensureContentLoaded;
     state.announcement = announcement;
     state.formatNoticeItem = (value) => noticeSanitizer.tokenizeNoticeItem(value);
     state.changelog = changelog;
     state.aboutContent = aboutContent;
+    state.faqContent = faqContent;
+    state.faqItems = faqItems;
   };
 })();

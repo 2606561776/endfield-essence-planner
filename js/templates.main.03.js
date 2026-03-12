@@ -631,6 +631,27 @@
       </transition>
 
       <transition name="fade-scale">
+        <div v-if="showFaq" class="about-overlay faq-overlay" @click.self="showFaq = false">
+          <div v-if="contentLoading" class="about-card notice-card">{{ t("badge.item_12") }}</div>
+          <div v-else class="about-card faq-card">
+            <h3>{{ faqContent.title }}</h3>
+            <div class="faq-body">
+              <div v-if="!faqItems.length" class="empty">{{ faqContent.emptyText }}</div>
+              <div v-else class="faq-list">
+                <details v-for="(entry, index) in faqItems" :key="'faq-' + index" class="faq-item">
+                  <summary class="faq-question">{{ entry.q }}</summary>
+                  <div class="faq-answer">{{ entry.a }}</div>
+                </details>
+              </div>
+            </div>
+            <div class="about-actions">
+              <button class="ghost-button" @click="showFaq = false">{{ t("plan_config.close") }}</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="fade-scale">
                 <div v-if="showAbout" class="about-overlay about-overlay-main" @click.self="showAbout = false">
                   <div v-if="contentLoading" class="about-card notice-card">{{ t("badge.item_12") }}</div>
                   <div v-else class="about-card about-main">

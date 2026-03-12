@@ -12,6 +12,7 @@
     state.weaponMarks = ref({});
     state.weaponAttrOverrides = ref({});
     state.showAbout = ref(false);
+    state.showFaq = ref(false);
     state.showSecondaryMenu = ref(false);
 
     state.contentLoading = ref(false);
