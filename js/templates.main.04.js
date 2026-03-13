@@ -623,10 +623,5 @@
         </div>
       </div>
 
-      <footer v-if="showIcpFooter" class="icp-footer">
-        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
-          {{ icpNumber }}
-        </a>
-      </footer>
 `);
 })();

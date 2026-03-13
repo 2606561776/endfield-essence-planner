@@ -205,6 +205,13 @@
             >NEW</span>
             {{ t("nav.rerun_ranking") }}
           </button>
+          <button
+            class="nav-item"
+            :class="{ active: currentView === 'background' }"
+            @click="setView('background')"
+          >
+            {{ t("nav.background_view") }}
+          </button>
           </nav>
         </div>
       </header>
@@ -229,9 +236,11 @@
           <button class="about-button perf-keep" @click="setPerfMode('low')">{{ t("button.keep_low_gpu") }}</button>
         </div>
       </div>
-      <main class="layout">
-        <transition name="view-switch" mode="out-in">
-          <div v-if="currentView === 'planner'" key="planner" class="view-shell planner-shell">
+      <transition name="view-switch" mode="out-in">
+        <div v-if="currentView !== 'background'" key="layout" class="layout-shell">
+          <main class="layout">
+            <transition name="view-switch" mode="out-in">
+              <div v-if="currentView === 'planner'" key="planner" class="view-shell planner-shell">
         <div class="mobile-tabs">
           <button
             class="mobile-tab"

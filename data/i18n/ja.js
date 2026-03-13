@@ -434,6 +434,7 @@ Object.assign(window.I18N["ja"].strings, {
   "nav.auto_mode_temporarily_switches_to_low_gpu_based_on_rende": "自動モードは描画性能に応じて低GPUモードへ一時切り替えます。",
   "nav.auto_now": "現在の自動:",
   "nav.background_display": "背景表示",
+  "nav.background_view": "背景プレビュー",
   "nav.background_image": "背景画像",
   "nav.base_attribute_conflict": "基礎属性の衝突",
   "nav.base_attributes": "基礎属性",

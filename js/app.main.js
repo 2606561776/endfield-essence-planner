@@ -700,6 +700,9 @@
         if (view === "match") {
           return { view: "match" };
         }
+        if (view === "background") {
+          return { view: "background" };
+        }
         return { view: "planner", weaponNames, hasWeaponParam };
       };
 
@@ -756,6 +759,9 @@
         if (view === "match") {
           return "/match";
         }
+        if (view === "background") {
+          return "/background";
+        }
         return "/planner";
       };
 
@@ -765,6 +771,7 @@
         "strategy",
         "equip-refining",
         "rerun-ranking",
+        "background",
       ]);
       const syncLegacyScrollbarMode = () => {
         if (typeof document === "undefined" || !document.documentElement) return;

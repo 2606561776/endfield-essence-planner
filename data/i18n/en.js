@@ -434,6 +434,7 @@ Object.assign(window.I18N["en"].strings, {
   "nav.auto_mode_temporarily_switches_to_low_gpu_based_on_rende": "Auto mode temporarily switches to Low GPU based on rendering performance.",
   "nav.auto_now": "Auto now:",
   "nav.background_display": "Background display",
+  "nav.background_view": "Background",
   "nav.background_image": "Background Image",
   "nav.base_attribute_conflict": "Base attribute conflict",
   "nav.base_attributes": "Base Attributes",

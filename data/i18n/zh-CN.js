@@ -405,6 +405,7 @@ Object.assign(window.I18N["zh-CN"].strings, {
   "nav.auto_mode_temporarily_switches_to_low_gpu_based_on_rende": "自动模式会根据渲染性能临时切换低GPU模式。",
   "nav.auto_now": "当前自动：",
   "nav.background_display": "背景显示",
+  "nav.background_view": "背景预览",
   "nav.background_image": "背景图片",
   "nav.base_attribute_conflict": "基础属性冲突",
   "nav.base_attributes": "基础属性",

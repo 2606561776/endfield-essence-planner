@@ -535,6 +535,20 @@
       >
         ↑
       </button>
+      <footer v-if="showIcpFooter" class="icp-footer">
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+          {{ icpNumber }}
+        </a>
+      </footer>
+    </div>
+    <div
+      v-else
+      key="background"
+      class="background-view"
+      role="region"
+      :aria-label="t('nav.background_view')"
+    ></div>
+  </transition>
 
       <transition name="fade-scale">
         <div v-if="showNotice" class="about-overlay notice-overlay" @click.self="closeNotice">
