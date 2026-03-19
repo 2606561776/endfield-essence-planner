@@ -34,6 +34,12 @@
                     <div class="rerun-ranking-meta">
                       {{ t("badge.gap_days_days", { days: row.hasEndedHistory ? row.gapDays : "-" }) }}
                     </div>
+                    <div v-if="row.hasEndedHistory" class="rerun-ranking-gap-bar">
+                      <span
+                        class="rerun-ranking-gap-bar-fill"
+                        :style="{ width: (row.gapRatio * 100) + '%' }"
+                      ></span>
+                    </div>
                     <div class="rerun-ranking-meta">
                       {{ t("badge.count_count", { count: row.rerunCount > 0 ? row.rerunCount : "-" }) }}
                     </div>
@@ -649,10 +655,10 @@
                 <ul class="about-sponsor-list-items">
                   <li
                     v-for="(entry, index) in aboutContent.sponsor.list"
-                    :key="entry.name || \`about-sponsor-entry-\${index}\`"
+                    :key="entry.key || \`about-sponsor-entry-\${index}\`"
                     class="about-sponsor-entry"
                   >
-                    <div class="about-sponsor-entry-name">{{ entry.name }}</div>
+                    <div class="about-sponsor-entry-name">{{ entry.displayName || entry.name }}</div>
                     <div
                       v-if="entry.amount || entry.date"
                       class="about-sponsor-entry-meta"

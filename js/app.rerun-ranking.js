@@ -161,6 +161,18 @@
     });
     const deduped = Array.from(dedupedByCharacter.values()).sort(compareRankingRow);
 
+    const maxGapDays = deduped.reduce((max, row) => {
+      if (!row.hasEndedHistory || !Number.isFinite(row.gapDays)) return max;
+      return Math.max(max, row.gapDays);
+    }, 0);
+    deduped.forEach((row) => {
+      if (!row.hasEndedHistory || !Number.isFinite(row.gapDays) || maxGapDays <= 0) {
+        row.gapRatio = 0;
+        return;
+      }
+      row.gapRatio = Math.min(row.gapDays / maxGapDays, 1);
+    });
+
     const inactive = [];
     const active = [];
     const upcoming = [];

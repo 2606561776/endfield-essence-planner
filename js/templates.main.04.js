@@ -116,7 +116,12 @@
                 (unifiedExceptionCurrent && unifiedExceptionCurrent.summary) ||
                   t("error.page_init_summary")
               }}
-              {{ t("update.refresh_and_try_again_if_it_persists_report_it_with_cons") }}
+            </p>
+            <p class="storage-error-warning" v-if="activeUnifiedExceptionKind === 'runtime'">
+              {{
+                (unifiedExceptionCurrent && unifiedExceptionCurrent.detail) ||
+                  t("update.refresh_and_try_again_if_it_persists_report_it_with_cons")
+              }}
             </p>
             <p class="storage-error-warning" v-else>
               {{ t("storage.a_browser_local_data_read_write_error_was_detected_conti") }}

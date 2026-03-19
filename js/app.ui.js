@@ -86,6 +86,23 @@
     const toastManualPauseMeta = new Map();
     const toastHoverPause = new Set();
     const toastLeaveRects = new Map();
+    const toastPauseEpoch = ref(0);
+    const markToastPauseChanged = () => {
+      toastPauseEpoch.value = (toastPauseEpoch.value + 1) % 1000000;
+    };
+    const setToastPaused = (noticeId, paused) => {
+      const key = String(noticeId || "");
+      if (!key) return;
+      const wasPaused = toastManualPause.has(key);
+      if (paused) {
+        toastManualPause.add(key);
+      } else {
+        toastManualPause.delete(key);
+      }
+      if (toastManualPause.has(key) !== wasPaused) {
+        markToastPauseChanged();
+      }
+    };
     let toastPointerTrackerReady = false;
     let toastPointerPosition = null;
     let toastPointerMoveHandler = null;
@@ -147,10 +164,12 @@
           : typeof state.t === "function"
           ? state.t("error.page_init_summary")
           : "页面初始化阶段发生异常，部分功能可能不可用。";
+      const detail = meta && meta.detail ? String(meta.detail) : "";
       return {
         id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
         title,
         summary,
+        detail,
         occurredAt: nowIsoString(),
         operation,
         key,
@@ -256,7 +275,7 @@
         fillToastVisibleFromQueue();
         return;
       }
-      toastManualPause.delete(key);
+      setToastPaused(key, false);
       toastManualPauseMeta.delete(key);
       const current = Array.isArray(toastNotices.value) ? toastNotices.value : [];
       const next = current.filter((item) => String((item && item.id) || "") !== key);
@@ -360,7 +379,7 @@
       const key = String(noticeId || "");
       if (!key) return;
       ensureToastPointerTracker();
-      toastManualPause.add(key);
+      setToastPaused(key, true);
       toastManualPauseMeta.set(key, { pausedAt: Date.now() });
       const meta = toastTimerMeta.get(key);
       if (!meta || !toastTimers.has(key)) {
@@ -384,7 +403,7 @@
     const resumeToastNotice = (noticeId) => {
       const key = String(noticeId || "");
       if (!key) return;
-      toastManualPause.delete(key);
+      setToastPaused(key, false);
       toastManualPauseMeta.delete(key);
       if (toastTimers.has(key)) return;
       const meta = toastTimerMeta.get(key);
@@ -417,6 +436,7 @@
     const isToastNoticePaused = (noticeId) => {
       const key = String(noticeId || "");
       if (!key) return false;
+      void toastPauseEpoch.value;
       return toastManualPause.has(key);
     };
 
@@ -445,7 +465,7 @@
         removeVisibleToastNotice(first.id);
         return;
       }
-      toastManualPause.delete(String(noticeId || ""));
+      setToastPaused(String(noticeId || ""), false);
       toastManualPauseMeta.delete(String(noticeId || ""));
       clearToastTimer(noticeId);
       removeVisibleToastNotice(noticeId);

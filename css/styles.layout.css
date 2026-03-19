@@ -1040,6 +1040,7 @@
 
       .rerun-ranking-main {
         min-width: 0;
+        flex: 1 1 auto;
         display: grid;
         gap: 4px;
       }
@@ -1054,6 +1055,28 @@
       .rerun-ranking-meta {
         font-size: 13px;
         color: var(--muted);
+      }
+
+      .rerun-ranking-gap-bar {
+        margin: 4px 0 2px;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(var(--color-white-rgb), var(--alpha-10));
+        overflow: hidden;
+      }
+
+      .rerun-ranking-gap-bar-fill {
+        display: block;
+        height: 100%;
+        width: 0%;
+        border-radius: inherit;
+        background: linear-gradient(
+          90deg,
+          rgba(var(--color-accent-rgb), var(--alpha-90)),
+          rgba(var(--color-accent-rgb), var(--alpha-35))
+        );
+        box-shadow: 0 0 0 1px rgba(var(--color-accent-rgb), var(--alpha-20)) inset;
+        transition: width 0.3s ease;
       }
 
       .rerun-ranking-up-chip {

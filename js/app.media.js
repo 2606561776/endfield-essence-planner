@@ -1,7 +1,57 @@
 (function () {
   const modules = (window.AppModules = window.AppModules || {});
 
+  const avifProbeData =
+    "data:image/avif;base64,AAAAHGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZgAAAOptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABwaWN0AAAAAAAAAAAAAAAAAAAAAA5waXRtAAAAAAABAAAAImlsb2MAAAAAREAAAQABAAAAAAEOAAEAAAAAAAAAGAAAACNpaW5mAAAAAAABAAAAFWluZmUCAAAAAAEAAGF2MDEAAAAAamlwcnAAAABLaXBjbwAAAAxhdjFDgSACAAAAABNjb2xybmNseAABAA0AAYAAAAAUaXNwZQAAAAAAAAABAAAAAQAAABBwaXhpAAAAAAMICAgAAAAXaXBtYQAAAAAAAAABAAEEgQIDBAAAACBtZGF0EgAKBzgABlAQ0BkyCxZAAABAAAB5S6v2";
+  let avifSupportPromise = null;
+  let avifSupportResult = null;
+  let avifUnsupportedNotified = false;
+
+  const reportAvifUnsupported = (state) => {
+    if (avifUnsupportedNotified) return;
+    avifUnsupportedNotified = true;
+    if (!state || typeof state.reportRuntimeWarning !== "function") return;
+    const t = typeof state.t === "function" ? state.t : (key) => key;
+    const error = new Error("AVIF unsupported");
+    error.name = "AvifUnsupportedError";
+    state.reportRuntimeWarning(error, {
+      scope: "compat.avif",
+      operation: "media.avif-check",
+      key: "compat.avif",
+      title: t("error.avif_unsupported_title"),
+      summary: t("error.avif_unsupported_summary"),
+      detail: t("error.avif_unsupported_note"),
+      asToast: true,
+      optionalSignature: "compat.avif",
+    });
+  };
+
+  const checkAvifSupport = (state) => {
+    if (avifSupportResult !== null) return Promise.resolve(avifSupportResult);
+    if (avifSupportPromise) return avifSupportPromise;
+    avifSupportPromise = new Promise((resolve) => {
+      if (typeof Image === "undefined") {
+        avifSupportResult = true;
+        resolve(true);
+        return;
+      }
+      const img = new Image();
+      const finalize = (supported) => {
+        avifSupportResult = supported;
+        resolve(supported);
+      };
+      img.onload = () => finalize(img.width > 0 && img.height > 0);
+      img.onerror = () => finalize(false);
+      img.src = avifProbeData;
+    }).then((supported) => {
+      if (!supported) reportAvifUnsupported(state);
+      return supported;
+    });
+    return avifSupportPromise;
+  };
+
   modules.initMedia = function initMedia(ctx, state) {
+    checkAvifSupport(state);
     const formatMediaPath = (path) => {
       if (!path) return "";
       if (/^(https?:)?\/\//.test(path)) return encodeURI(path);

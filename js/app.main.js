@@ -1369,7 +1369,10 @@
         return (
           operation === "optional.load" ||
           scope === "boot.optional-resource" ||
+          scope === "compat.avif" ||
+          operation === "media.avif-check" ||
           scope === "i18n.missing-key" ||
+          errorName === "AvifUnsupportedError" ||
           errorName === "I18nMissingKeyError"
         );
       });

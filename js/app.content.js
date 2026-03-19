@@ -71,14 +71,29 @@
     const normalizeSponsorList = (list) => {
       if (!Array.isArray(list)) return [];
       return list
-        .map((entry) => {
-          if (!entry) return null;
-          if (typeof entry === "string") return { name: entry };
-          if (typeof entry === "object") {
-            const name = entry.name || entry.title || entry.label;
-            if (!name) return null;
+        .map((entry, index) => {
+          if (entry === null || typeof entry === "undefined") return null;
+          if (typeof entry === "string") {
+            const name = String(entry);
+            const trimmed = name.trim();
             return {
               name,
+              displayName: trimmed ? name : "\u00a0",
+              key: trimmed ? name : `about-sponsor-entry-${index}`,
+              amount: "",
+              note: "",
+              date: "",
+            };
+          }
+          if (typeof entry === "object") {
+            const rawName = entry.name ?? entry.title ?? entry.label;
+            if (rawName === null || typeof rawName === "undefined") return null;
+            const name = String(rawName);
+            const trimmed = name.trim();
+            return {
+              name,
+              displayName: trimmed ? name : "\u00a0",
+              key: trimmed ? name : `about-sponsor-entry-${index}`,
               amount: entry.amount || entry.money || "",
               note: entry.note || entry.message || "",
               date: entry.date || "",
