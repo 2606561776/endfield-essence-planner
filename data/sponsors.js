@@ -44,6 +44,7 @@ window.SPONSORS = [
   { name: "ʕ·ᴥ·ʔ", amount: "CNY 6.66", note: "感谢🙏🏻", date: "2026-03-06" },
   { name: "轻舟", amount: "CNY 3.25", note: "一定要做下去喵,支持一下喵", date: "2026-03-07" },
   { name: "匿名", amount: "CNY 5.00", note: "此留言因包含谐音被过滤", date: "2026-03-07" },
+  { name: "由于支付宝限制,看不到账户昵称", amount: "CNY 32.00", note: "好用!差点想自己开发一个,还好搜到了👍", date: "2026-03-08" },
   { name: "右左", amount: "CNY 20.00+20.00", note: "希望增加推荐方案按未拥有优先,但刷取地点显示已有基质功能+用于适配已有该基质但出现更优词条数的情况", date: "2026-03-13" },
   { name: "三", amount: "CNY 10.00", note: "留言信标 [👍]“做得好”", date: "2026-03-14" },
   { name: "梅花不知夏", amount: "CNY 8.88", note: "", date: "2026-03-15" },
@@ -53,4 +54,6 @@ window.SPONSORS = [
   { name: "一口华夫饼", amount: "CNY 5.00", note: "太牛了这个网站", date: "2026-03-19" },
   { name: "LanderC_", amount: "CNY 10.00", note: "非常好用!", date: "2026-03-26" },
   { name: "QvQ", amount: "CNY 5.00", note: "", date: "2026-03-26" },
+  { name: "由于支付宝限制,看不到账户昵称", amount: "CNY 8.88", note: "不要停下来啊!", date: "2026-03-30" },
+  { name: "由于支付宝限制,看不到账户昵称", amount: "CNY 66.60+1.00", note: "超棒的网站,写写大佬!", date: "2026-03-31" },
 ];

@@ -964,10 +964,17 @@
         bad_request: "sync.error_bad_request",
         invalid_reset_code: "sync.error_invalid_reset_code",
         reset_code_unavailable: "sync.error_reset_code_unavailable",
+        reset_email_unavailable: "sync.error_reset_email_unavailable",
+        reset_code_issue_failed: "sync.error_reset_code_issue_failed",
         password_mismatch: "sync.error_password_mismatch",
         account_disabled: "sync.error_account_disabled",
         email_unavailable: "sync.error_email_unavailable",
         email_send_failed: "sync.error_email_send_failed",
+        email_verification_issue_failed: "sync.error_email_verification_issue_failed",
+        smtp_disabled: "sync.error_smtp_disabled",
+        smtp_config_invalid: "sync.error_smtp_config_invalid",
+        smtp_connect_failed: "sync.error_smtp_connect_failed",
+        smtp_rejected: "sync.error_smtp_rejected",
         email_taken: "sync.error_email_taken",
         invalid_verification_code: "sync.error_invalid_verification_code",
         invalid_payment_claim: "sync.error_invalid_payment_claim",
@@ -1984,9 +1991,37 @@
           key: 'sync.error_reset_code_unavailable',
           fallback: '服务器尚未启用重置码功能，请联系开发者。',
         },
+        reset_email_unavailable: {
+          key: 'sync.error_reset_email_unavailable',
+          fallback: '当前账号没有可用于接收重置码的邮箱。',
+        },
+        reset_code_issue_failed: {
+          key: 'sync.error_reset_code_issue_failed',
+          fallback: '重置码签发失败，请稍后重试。',
+        },
         invalid_payload: {
           key: 'sync.error_invalid_payload',
           fallback: '同步数据格式无效。',
+        },
+        email_verification_issue_failed: {
+          key: 'sync.error_email_verification_issue_failed',
+          fallback: '邮箱验证码签发失败，请稍后重试。',
+        },
+        smtp_disabled: {
+          key: 'sync.error_smtp_disabled',
+          fallback: '服务器当前已关闭邮件发送功能。',
+        },
+        smtp_config_invalid: {
+          key: 'sync.error_smtp_config_invalid',
+          fallback: '服务器邮件配置无效，请联系开发者。',
+        },
+        smtp_connect_failed: {
+          key: 'sync.error_smtp_connect_failed',
+          fallback: '服务器暂时无法连接邮件服务，请稍后重试。',
+        },
+        smtp_rejected: {
+          key: 'sync.error_smtp_rejected',
+          fallback: '邮件服务拒绝了本次发送请求，请稍后重试。',
         },
         payload_too_large: {
           key: 'sync.error_payload_too_large',

@@ -411,8 +411,8 @@
           <span class="footer-sep">·</span>
           <span class="footer-item">
             <span class="footer-label">{{ t("badge.contact") }}</span>
-            <a class="footer-link" href="mailto:end@canmoe.com">
-              end@canmoe.com
+            <a class="footer-link" href="mailto:admin@canmoe.com">
+              admin@canmoe.com
             </a>
           </span>
           <span class="footer-item footer-item-disclaimer">
