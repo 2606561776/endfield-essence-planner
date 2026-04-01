@@ -13,6 +13,7 @@
     const syncVerificationCooldownSessionKey = state.syncVerificationCooldownSessionKey || "planner-sync-email-verify-cooldown:v1";
     const syncVerificationSubmitCooldownSessionKey = state.syncVerificationSubmitCooldownSessionKey || "planner-sync-email-verify-submit-cooldown:v1";
     const syncEmailChangeCooldownSessionKey = state.syncEmailChangeCooldownSessionKey || "planner-sync-email-change-cooldown:v1";
+    const syncResetCodeRequestCooldownSessionKey = state.syncResetCodeRequestCooldownSessionKey || "planner-sync-reset-code-request-cooldown:v1";
     const getDefaultApiBase = () => "https://ldy.canmoe.com/api";
     const devHostPattern = /^(localhost|127\.0\.0\.1)$/i;
     const defaultMeta = {
@@ -55,6 +56,7 @@
     let syncVerificationCooldownTimer = null;
     let syncVerificationSubmitCooldownTimer = null;
     let syncEmailChangeCooldownTimer = null;
+    let syncResetCodeRequestCooldownTimer = null;
     const overlayClosePointerState = Object.create(null);
     const overlayClosePointerMoveThreshold = 8;
 
@@ -143,6 +145,12 @@
         syncVerificationSubmitCooldownTimer = null;
         return;
       }
+      if (kind === "reset-request") {
+        if (!syncResetCodeRequestCooldownTimer) return;
+        clearInterval(syncResetCodeRequestCooldownTimer);
+        syncResetCodeRequestCooldownTimer = null;
+        return;
+      }
       if (!syncEmailChangeCooldownTimer) return;
       clearInterval(syncEmailChangeCooldownTimer);
       syncEmailChangeCooldownTimer = null;
@@ -158,6 +166,11 @@
           ? {
               ref: state.syncVerificationSubmitCooldownSeconds,
               storageKey: syncVerificationSubmitCooldownSessionKey,
+            }
+        : kind === "reset-request"
+          ? {
+              ref: state.syncResetCodeRequestCooldownSeconds,
+              storageKey: syncResetCodeRequestCooldownSessionKey,
             }
         : {
             ref: state.syncEmailChangeCooldownSeconds,
@@ -190,6 +203,8 @@
         syncVerificationCooldownTimer = timer;
       } else if (kind === "verify-submit") {
         syncVerificationSubmitCooldownTimer = timer;
+      } else if (kind === "reset-request") {
+        syncResetCodeRequestCooldownTimer = timer;
       } else {
         syncEmailChangeCooldownTimer = timer;
       }
@@ -1103,11 +1118,14 @@
         invalid_current_password: "sync.error_invalid_current_password",
         bad_request: "sync.error_bad_request",
         invalid_reset_code: "sync.error_invalid_reset_code",
+        missing_reset_code: "sync.error_missing_reset_code",
         reset_code_unavailable: "sync.error_reset_code_unavailable",
         reset_email_unavailable: "sync.error_reset_email_unavailable",
         reset_code_issue_failed: "sync.error_reset_code_issue_failed",
         password_mismatch: "sync.error_password_mismatch",
         account_disabled: "sync.error_account_disabled",
+        missing_reset_password_account: "sync.error_missing_reset_password_account",
+        missing_new_password_fields: "sync.error_missing_new_password_fields",
         email_unavailable: "sync.error_email_unavailable",
         email_unchanged: "sync.error_email_unchanged",
         email_send_failed: "sync.error_email_send_failed",
@@ -1867,17 +1885,25 @@
     };
 
     const requestSyncResetCode = async () => {
-      const account = String(state.syncPasswordResetRequestAccountInput.value || "").trim();
+      const authenticated = Boolean(state.syncAuthenticated.value);
+      const account = authenticated
+        ? String(
+            (state.syncUser && state.syncUser.value && (state.syncUser.value.email || state.syncUser.value.username)) || ""
+          ).trim()
+        : String(state.syncPasswordResetRequestAccountInput.value || "").trim();
+      state.syncPasswordChangeError.value = "";
+      state.syncPasswordChangeNotice.value = "";
       if (!account) {
         const message = createSyncTextEntry(
-          "sync.error_missing_reset_password_fields",
-          "请完整填写重置码改密所需信息。"
+          "sync.error_missing_reset_password_account",
+          "请输入用户名或邮箱。"
         );
         state.syncPasswordChangeError.value = resolveSyncEntry(message).text;
         setSyncError(message);
         return;
       }
       state.syncBusy.value = true;
+      let requestError = null;
       try {
         await requestJson("send-reset-code", {
           method: "POST",
@@ -1890,9 +1916,11 @@
         state.syncPasswordChangeNotice.value = resolveSyncEntry(notice).text;
         setSyncNotice(notice, "info");
       } catch (error) {
+        requestError = error;
         handleSyncRequestFailure(error, "sync.error_sync_failed", "同步失败，请稍后重试。");
         state.syncPasswordChangeError.value = state.syncError.value;
       } finally {
+        startEmailActionCooldown('reset-request', getEmailActionCooldownSeconds(requestError));
         state.syncBusy.value = false;
       }
     };
@@ -2133,6 +2161,10 @@
           key: 'sync.error_invalid_reset_code',
           fallback: '重置码无效、已过期或已被使用。',
         },
+        missing_reset_code: {
+          key: 'sync.error_missing_reset_code',
+          fallback: '请输入重置码。',
+        },
         invalid_verification_code: {
           key: 'sync.error_invalid_verification_code',
           fallback: '邮箱验证码无效、已过期或已被使用。',
@@ -2188,6 +2220,14 @@
         password_mismatch: {
           key: 'sync.error_password_mismatch',
           fallback: '两次输入的密码不一致。',
+        },
+        missing_reset_password_account: {
+          key: 'sync.error_missing_reset_password_account',
+          fallback: '请输入用户名或邮箱。',
+        },
+        missing_new_password_fields: {
+          key: 'sync.error_missing_new_password_fields',
+          fallback: '请输入新密码并完成确认。',
         },
         invalid_current_password: {
           key: 'sync.error_invalid_current_password',
@@ -2858,19 +2898,28 @@
       }
 
       if (useResetCode) {
-        if ((!authenticated && !account) || !resetCode || !newPassword || !confirmPassword) {
+        if (!authenticated && !account) {
           const message = createSyncTextEntry(
-            "sync.error_missing_reset_password_fields",
-            "Please enter the required reset-code fields."
+            "sync.error_missing_reset_password_account",
+            "请输入用户名或邮箱。"
           );
           state.syncPasswordChangeError.value = resolveSyncEntry(message).text;
           setSyncError(message);
           return;
         }
-        if (!authenticated && !account) {
+        if (!resetCode) {
           const message = createSyncTextEntry(
-            "sync.error_missing_reset_password_fields",
-            "请完整填写重置码改密所需信息。"
+            "sync.error_missing_reset_code",
+            "请输入重置码。"
+          );
+          state.syncPasswordChangeError.value = resolveSyncEntry(message).text;
+          setSyncError(message);
+          return;
+        }
+        if (!newPassword || !confirmPassword) {
+          const message = createSyncTextEntry(
+            "sync.error_missing_new_password_fields",
+            "请输入新密码并完成确认。"
           );
           state.syncPasswordChangeError.value = resolveSyncEntry(message).text;
           setSyncError(message);
@@ -3060,6 +3109,7 @@
     state.syncVerificationCooldownSeconds = ref(0);
     state.syncVerificationSubmitCooldownSeconds = ref(0);
     state.syncEmailChangeCooldownSeconds = ref(0);
+    state.syncResetCodeRequestCooldownSeconds = ref(0);
     state.syncPaymentChannelInput = ref('alipay');
     state.syncPaymentReferenceInput = ref('');
     state.syncPaymentClaimError = ref('');
@@ -3220,6 +3270,7 @@
         restoreCooldownFromSession('verify');
         restoreCooldownFromSession('verify-submit');
         restoreCooldownFromSession('change');
+        restoreCooldownFromSession('reset-request');
         if (state.showSyncModal.value) {
           void mountSyncTurnstile();
         }
@@ -3248,6 +3299,7 @@
         clearCooldownTimer('verify');
         clearCooldownTimer('verify-submit');
         clearCooldownTimer('change');
+        clearCooldownTimer('reset-request');
       });
     }
 

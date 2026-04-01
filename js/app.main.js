@@ -2002,6 +2002,7 @@
         syncVerificationCooldownSeconds: state.syncVerificationCooldownSeconds,
         syncVerificationSubmitCooldownSeconds: state.syncVerificationSubmitCooldownSeconds,
         syncEmailChangeCooldownSeconds: state.syncEmailChangeCooldownSeconds,
+        syncResetCodeRequestCooldownSeconds: state.syncResetCodeRequestCooldownSeconds,
         syncPaymentChannelInput: state.syncPaymentChannelInput,
         syncPaymentReferenceInput: state.syncPaymentReferenceInput,
         syncPaymentClaimError: state.syncPaymentClaimError,

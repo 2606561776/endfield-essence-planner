@@ -831,7 +831,7 @@
                     </div>
                     <div class="sync-summary-card sync-rights-qr-card">
                       <div class="secondary-label">{{ t("sync.payment.wechat") }}</div>
-                      <img class="sync-payment-qr" src="./sponsors/wechat.png" alt="WeChat QR" />
+                      <img class="sync-payment-qr" src="./sponsors/wechat2.png" alt="WeChat QR" />
                     </div>
                   </div>
                   <div class="sync-auth-field">
@@ -1011,20 +1011,35 @@
                 <div v-if="!syncAuthenticated" class="sync-auth-field">
                   <label class="secondary-label">{{ t("sync.account_label") }}</label>
                   <input
-                  v-model.trim="syncPasswordResetRequestAccountInput"
-                  class="secondary-input"
-                  type="text"
-                  autocomplete="username"
-                  maxlength="191"
-                    :disabled="syncBusy || syncFrontendBlocked"
+                    v-model.trim="syncPasswordResetRequestAccountInput"
+                    class="secondary-input"
+                    type="text"
+                    autocomplete="username"
+                    maxlength="191"
+                    :disabled="syncBusy || syncFrontendBlocked || syncResetCodeRequestCooldownSeconds > 0"
                     @keydown.enter="requestSyncResetCode"
                   />
                   <div class="secondary-actions" style="margin-top:8px;">
-                    <button class="ghost-button" :disabled="syncBusy || syncFrontendBlocked" @click="requestSyncResetCode">
-                      {{ t("sync.send_reset_code_action") }}
+                    <button class="ghost-button" :disabled="syncBusy || syncFrontendBlocked || syncResetCodeRequestCooldownSeconds > 0" @click="requestSyncResetCode">
+                      {{ syncResetCodeRequestCooldownSeconds > 0 ? (t("sync.send_reset_code_action") + "（" + syncResetCodeRequestCooldownSeconds + "s）") : t("sync.send_reset_code_action") }}
                     </button>
                   </div>
                   <div class="secondary-hint">{{ t("sync.reset_password_request_account_hint") }}</div>
+                </div>
+                <div v-else-if="syncPasswordChangeMode === 'reset_code'" class="sync-auth-field">
+                  <label class="secondary-label">{{ t("sync.current_email_label") }}</label>
+                  <input
+                    :value="syncUser && syncUser.email ? syncUser.email : t('sync.current_email_empty')"
+                    class="secondary-input"
+                    type="text"
+                    disabled
+                  />
+                  <div class="secondary-actions" style="margin-top:8px;">
+                    <button class="ghost-button" :disabled="syncBusy || syncFrontendBlocked || syncResetCodeRequestCooldownSeconds > 0" @click="requestSyncResetCode">
+                      {{ syncResetCodeRequestCooldownSeconds > 0 ? (t("sync.send_reset_code_action") + "（" + syncResetCodeRequestCooldownSeconds + "s）") : t("sync.send_reset_code_action") }}
+                    </button>
+                  </div>
+                  <div class="secondary-hint">{{ t("sync.reset_password_logged_in_request_hint") }}</div>
                 </div>
               <div v-if="syncAuthenticated && syncPasswordChangeMode === 'current'" class="sync-auth-field">
                 <label class="secondary-label">{{ t("sync.current_password_label") }}</label>
