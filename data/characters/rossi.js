@@ -1,14 +1,13 @@
 (function () {
   window.characters = window.characters || [];
-  window.characters.push(  {
-    "id": "Rossi",
+  window.characters.push({
+    "id": "rossi",
     "name": "洛茜",
     "rarity": 6,
     "element": "物理",
     "weaponType": "单手剑",
     "mainAbility": "敏捷",
     "subAbility": "智识",
-    "role": "",
     "profession": "近卫",
     "stats": {
       "strength": "97",
@@ -59,7 +58,7 @@
                   "57%",
                   "61%",
                   "65%",
-                  "67%"
+                  "71%"
                 ]
               },
               {
@@ -116,7 +115,7 @@
               {
                 "name": "处决攻击倍率",
                 "values": [
-                  "440%",
+                  "400%",
                   "440%",
                   "480%",
                   "520%",
@@ -133,7 +132,7 @@
               {
                 "name": "下落攻击倍率",
                 "values": [
-                  "88%",
+                  "80%",
                   "88%",
                   "96%",
                   "104%",
@@ -361,7 +360,7 @@
                 ]
               },
               {
-                "name": "增益效果的持续时间",
+                "name": "增益效果的持续时间(秒)",
                 "values": [
                   "15",
                   "15",
@@ -533,7 +532,7 @@
     ],
     "potentials": [
       {
-        "name": "懵懂的起点",
+        "name": "憧憬的起点",
         "description": "战技血红之影和连携技燎影时刻的伤害倍率提升至原本的1.15倍\n战技释放的狼之珀在命中敌人后返还10点技力"
       },
       {
@@ -546,11 +545,11 @@
       },
       {
         "name": "纯真的心愿",
-        "description": "终结技“利爪·奇袭”所需的终结技能量 -15.0%"
+        "description": "终结技“利爪”奇袭所需的终结技能量 -15.0%"
       },
       {
         "name": "传说的终点",
-        "description": "终结技“利爪·奇袭”的伤害倍率提升至原本的1.1倍\n暴击伤害额外 +30.0%"
+        "description": "终结技“利爪”奇袭的伤害倍率提升至原本的1.1倍\n暴击伤害额外 +30.0%"
       }
     ],
     "materials": {
@@ -571,8 +570,8 @@
       ],
       "elite4": [
         "协议圆盘组 x36",
-        "象限拟合液体 x20",
-        "血菌 x8",
+        "象限拟合液 x20",
+        "星门菌 x8",
         "折金票 x100k"
       ]
     },
@@ -595,10 +594,18 @@
           ]
         }
       ],
-      "analysis": "技能加点连携=大招>普攻>战技",
+      "analysis": "技能加点：连携技 = 终结技 > 普攻 > 战技。",
       "teamTips": "",
       "operationTips": "",
-      "teamSlots": []
+      "teamSlots": [],
+      "attributions": [
+        {
+          "role": "作者",
+          "name": "杨云钦",
+          "url": "https://space.bilibili.com/2099187588",
+          "note": "攻略撰写"
+        }
+      ]
     }
   });
 })();
